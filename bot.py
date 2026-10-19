@@ -2047,7 +2047,8 @@ class PenguPixelBot(commands.Bot):
         self.add_view(ServerMasterPanelView(self))
         self.add_view(UserMusicHubView(self))
         await self.tree.sync()
-        self.loop.create_task(self._voice_watchdog_loop())
+        # Watchdog desactivado para evitar reproducciones forzadas
+        # self.loop.create_task(self._voice_watchdog_loop())
 
     async def initialize_guild_experience(self, g: discord.Guild):
         if g.id in self._initialized_guilds:
@@ -2160,53 +2161,8 @@ class PenguPixelBot(commands.Bot):
                 else:
                     await chat_ch.send(embed=embed, view=ServerMasterPanelView(self))
 
-        if not g.voice_client:
-            active_vc = None
-            for vc in g.voice_channels:
-                if len([m for m in vc.members if not m.bot]) > 0:
-                    active_vc = vc
-                    break
-            if not active_vc:
-                active_vc = discord.utils.find(
-                    lambda c: "lo-fi" in c.name.lower() or "general" in c.name.lower(),
-                    g.voice_channels,
-                )
-            if active_vc:
-                try:
-                    vc_client = await active_vc.connect(self_deaf=True)
-                    print(f"🔊 Conectado automáticamente al canal de voz: {active_vc.name}", flush=True)
-                    state = get_music_state(g.id)
-                    if music_ch:
-                        state.text_channel = music_ch
-                    # Si hay usuarios en el canal de voz con playlists guardadas, iniciar su playlist automáticamente
-                    if not state.current and not state.queue:
-                        all_profs = load_all_user_profiles()
-                        starter_tracks = []
-                        starter_user = "Elito"
-                        for uid_str, pdata in all_profs.items():
-                            pls = pdata.get("playlists", [])
-                            if pls and pls[0].get("tracks"):
-                                starter_tracks = pls[0]["tracks"]
-                                starter_user = f"<@{uid_str}>"
-                                break
-                        if starter_tracks:
-                            for t in starter_tracks:
-                                state.queue.append(
-                                    Song(
-                                        title=t.get("title", "Canción"),
-                                        url="",
-                                        webpage_url=t.get("webpage_url", "https://open.spotify.com"),
-                                        duration=int(t.get("duration") or 0),
-                                        thumbnail=None,
-                                        uploader=t.get("artist", "Spotify / YT Music"),
-                                        requester=starter_user,
-                                        search_query=t.get("query") or t.get("title", ""),
-                                    )
-                                )
-                            await self.play_next(g)
-                            print("🎶 Auto-reproducción de playlist iniciada al conectar.", flush=True)
-                except Exception as e:
-                    print(f"Aviso al conectar a voz: {e}", flush=True)
+        # No auto-conectar ni forzar reproducción de música al iniciar el bot
+        pass
 
     async def on_ready(self):
         print("=" * 60, flush=True)
@@ -2270,110 +2226,25 @@ class PenguPixelBot(commands.Bot):
                 pass
 
     def _refill_queue_if_needed(self, guild: discord.Guild, state: GuildMusicState):
-        """Si la cola termina, vuelve a cargar canciones de las playlists o canciones favoritas guardadas para que nunca pare la música (24/7)."""
-        if state.queue:
-            return
-        all_profs = load_all_user_profiles()
-        pool: list[dict] = []
-        author = "Radio 24/7"
-        for uid_str, pdata in all_profs.items():
-            for pl in pdata.get("playlists", []):
-                pool.extend(pl.get("tracks", []))
-            pool.extend(pdata.get("liked_songs", []))
-            if not author and pdata.get("display_name"):
-                author = pdata["display_name"]
-
-        if pool:
-            random.shuffle(pool)
-            for t in pool[:20]:
-                state.queue.append(
-                    Song(
-                        title=t.get("title", "Canción"),
-                        url="",
-                        webpage_url=t.get("webpage_url", "https://open.spotify.com"),
-                        duration=int(t.get("duration") or 0),
-                        thumbnail=None,
-                        uploader=t.get("artist", "Spotify / YT Music"),
-                        requester=author,
-                        search_query=t.get("query") or t.get("title", ""),
-                    )
-                )
+        """No rellenar automáticamente la cola para respetar las pausas y fin de canciones."""
+        return
 
     async def _auto_reconnect_guild(self, guild: discord.Guild, preferred_channel: Optional[discord.VoiceChannel] = None):
-        """Reconecta de forma segura y silenciosa al canal de voz si el bot fue desconectado o reiniciado."""
-        target_vc = preferred_channel
-        if not target_vc:
-            for vc in guild.voice_channels:
-                if len([m for m in vc.members if not m.bot]) > 0:
-                    target_vc = vc
-                    break
-        if not target_vc:
-            target_vc = discord.utils.find(
-                lambda c: "lo-fi" in c.name.lower() or "general" in c.name.lower() or "valo" in c.name.lower(),
-                guild.voice_channels,
-            )
-        if not target_vc and guild.voice_channels:
-            target_vc = guild.voice_channels[0]
-
-        if not target_vc:
-            return
-
-        vc = guild.voice_client
-        if vc and vc.is_connected() and vc.channel == target_vc:
-            return
-
-        try:
-            if vc:
-                try:
-                    await vc.disconnect(force=True)
-                except Exception:
-                    pass
-                await asyncio.sleep(0.5)
-
-            new_vc = await target_vc.connect(self_deaf=True, reconnect=True, timeout=20.0)
-            print(f"🔊 Conectado/Reconectado automáticamente al canal de voz: {target_vc.name}", flush=True)
-            state = get_music_state(guild.id)
-            if not new_vc.is_playing() and not new_vc.is_paused():
-                self._refill_queue_if_needed(guild, state)
-                if state.queue or state.current:
-                    await self.play_next(guild)
-        except Exception as e:
-            print(f"Aviso de reconexión de voz: {e}", flush=True)
+        """Desactivado para no forzar reconexiones no solicitadas."""
+        return
 
     async def _voice_watchdog_loop(self):
-        """Vigilante permanente en segundo plano: si Discord o la red cortan la voz o se reinicia el PC, reconecta solo."""
-        await self.wait_until_ready()
-        await asyncio.sleep(5)
-        while not self.is_closed():
-            try:
-                for guild in self.guilds:
-                    vc = guild.voice_client
-                    if not vc or not vc.is_connected():
-                        await self._auto_reconnect_guild(guild)
-                    else:
-                        state = get_music_state(guild.id)
-                        if not vc.is_playing() and not vc.is_paused():
-                            self._refill_queue_if_needed(guild, state)
-                            if state.queue:
-                                await self.play_next(guild)
-            except Exception as e:
-                pass
-            await asyncio.sleep(12)
+        """Desactivado: no forzar reconexiones ni auto-reproducción de música."""
+        return
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        """Detecta desconexiones inmediatas o usuarios que entran a canales de voz vacíos."""
+        """Si desconectan al bot del canal de voz, limpiar la cola y respetar la desconexión."""
         if member == self.user:
             if after.channel is None:
-                print("⚠️ Desconexión de voz detectada en Discord. Reconectando...", flush=True)
-                await asyncio.sleep(1.5)
-                await self._auto_reconnect_guild(member.guild)
+                state = get_music_state(member.guild.id)
+                state.queue.clear()
+                state.current = None
             return
-
-        if after.channel and not member.bot:
-            guild = member.guild
-            vc = guild.voice_client
-            if not vc or not vc.is_connected():
-                await self._auto_reconnect_guild(guild, preferred_channel=after.channel)
 
     async def refresh_player_message(self, guild: discord.Guild):
         state = get_music_state(guild.id)
@@ -2510,6 +2381,10 @@ class PenguPixelBot(commands.Bot):
         if vc.is_playing() or vc.is_paused():
             state.suppress_after_callback = True
             vc.stop()
+            for _ in range(20):
+                if not (vc.is_playing() or vc.is_paused()):
+                    break
+                await asyncio.sleep(0.05)
 
         transformed = self._build_audio_source(next_song, state, seek_seconds=0.0)
 
@@ -2521,7 +2396,10 @@ class PenguPixelBot(commands.Bot):
                 print(f"Error en reproducción: {error}", flush=True)
             asyncio.run_coroutine_threadsafe(self.play_next(guild), self.loop)
 
-        vc.play(transformed, after=after_play)
+        try:
+            vc.play(transformed, after=after_play)
+        except Exception as ex:
+            print(f"Error al iniciar reproducción con vc.play: {ex}", flush=True)
         await self.refresh_player_message(guild)
 
         if state.queue:
