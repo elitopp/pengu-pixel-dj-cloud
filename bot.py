@@ -104,6 +104,11 @@ YTDL_FLAT_OPTIONS = {
     "no_warnings": True,
     "extract_flat": True,
     "nocheckcertificate": True,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "ios", "mweb", "web"]
+        }
+    },
 }
 
 YTDL_FULL_OPTIONS = {
@@ -116,6 +121,11 @@ YTDL_FULL_OPTIONS = {
     "no_warnings": True,
     "default_search": "ytsearch",
     "extract_flat": False,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "ios", "mweb", "web"]
+        }
+    },
 }
 
 ytdl_flat = yt_dlp.YoutubeDL(YTDL_FLAT_OPTIONS)
@@ -2415,19 +2425,11 @@ class PenguPixelBot(commands.Bot):
             if interaction.guild.voice_client and interaction.guild.voice_client.channel:
                 target_vc = interaction.guild.voice_client.channel
             else:
-                for vc_ch in interaction.guild.voice_channels:
-                    if len([m for m in vc_ch.members if not m.bot]) > 0:
-                        target_vc = vc_ch
-                        break
-                if not target_vc and interaction.guild.voice_channels:
-                    target_vc = interaction.guild.voice_channels[0]
-
-        if not target_vc:
-            await interaction.followup.send(
-                "🐧 **¡Primero entra a un canal de voz** (por ejemplo `🔊・Iglú Lo-Fi 24/7`) y vuelve a pedir tu música!",
-                ephemeral=True,
-            )
-            return None
+                await interaction.followup.send(
+                    "🐧 **¡Primero entra a un canal de voz** en Discord (por ejemplo `🔊・Iglú Lo-Fi 24/7`) para que pueda reproducir tu música!",
+                    ephemeral=True,
+                )
+                return None
 
         vc = interaction.guild.voice_client
         if not vc or not vc.is_connected():
@@ -2506,16 +2508,23 @@ class PenguPixelBot(commands.Bot):
                 pass
 
         if send_followup:
-            now_playing_str = state.current.title if state.current else playlist_title
-            await interaction.followup.send(
-                content=(
-                    f"🔊 **¡Reproduciendo ahora mismo `{playlist_title}`!**\n"
-                    f"🎶 **Sonando en el canal de voz:** `{now_playing_str}` *(+{len(state.queue)} canciones en cola)*"
-                ),
-                embed=embed,
-                view=MusicControlView(self),
-                ephemeral=True,
-            )
+            if state.current:
+                await interaction.followup.send(
+                    content=(
+                        f"🔊 **¡Reproduciendo ahora mismo `{playlist_title}`!**\n"
+                        f"🎶 **Sonando en el canal de voz:** `{state.current.title}` *(+{len(state.queue)} canciones en cola)*"
+                    ),
+                    embed=embed,
+                    view=MusicControlView(self),
+                    ephemeral=True,
+                )
+            else:
+                await interaction.followup.send(
+                    content=f"⚠️ No se pudo reproducir `{playlist_title}`. Verifica que el video o playlist no esté bloqueado o privado.",
+                    embed=embed,
+                    view=MusicControlView(self),
+                    ephemeral=True,
+                )
 
     async def start_party_blend(self, interaction: discord.Interaction):
         """Modo Fiesta: Mezcla las playlists y gustos de todos los usuarios conectados al canal de voz."""
