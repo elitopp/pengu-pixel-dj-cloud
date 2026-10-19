@@ -1,0 +1,6 @@
+.venv/
+.env
+__pycache__/
+*.zip
+.chrome_profile*/
+deploy_cloud.py

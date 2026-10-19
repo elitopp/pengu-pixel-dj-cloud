@@ -1,0 +1,53 @@
+name: Pengu DJ 24/7 Cloud Server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 */5 * * *'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: pengu-dj-live-instance
+  cancel-in-progress: true
+
+jobs:
+  run-pengu-dj:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout Pengu DJ
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12 & FFmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Audio & Discord Dependencies
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y ffmpeg libffi-dev libnacl-dev libopus0 libopus-dev
+          pip install -r requirements.txt
+
+      - name: Run Pengu DJ 24/7 (Auto-restarts every 5h)
+        timeout-minutes: 330
+        continue-on-error: true
+        run: python -u bot.py
+
+      - name: Auto-Relaunch Next Cloud Cycle
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "PenguDJ" || true
+          git config user.email "bot@pengu.local" || true
+          git add user_music_profiles.json && git commit -m "Sync user profiles" && git push || true
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/pengu_24_7.yml/dispatches \
+            -d '{"ref":"main"}' || true

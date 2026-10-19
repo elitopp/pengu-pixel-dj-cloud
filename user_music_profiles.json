@@ -1,0 +1,824 @@
+{
+  "444940181930246147": {
+    "display_name": "Elito",
+    "spotify": {
+      "connected": true,
+      "client_id": "",
+      "client_secret": "",
+      "access_token": "",
+      "profile_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL",
+      "account_name": "Playlists Activas"
+    },
+    "ytmusic": {
+      "connected": true,
+      "api_key_or_token": "",
+      "channel_or_playlist_url": "https://www.youtube.com/watch?v=xs76QT1IHEM",
+      "account_name": "Conciertos & Mixes"
+    },
+    "tastes": [
+      "macha y el bloque depresivo"
+    ],
+    "liked_songs": [
+      {
+        "title": "Macha y El Bloque Depresivo - 100% Lúcidos (Concierto Completo)",
+        "artist": "Macha y El Bloque Depresivo",
+        "query": "https://www.youtube.com/watch?v=xs76QT1IHEM",
+        "duration": 5077,
+        "webpage_url": "https://www.youtube.com/watch?v=xs76QT1IHEM"
+      }
+    ],
+    "playlists": [
+      {
+        "name": "💚 wave to sexo",
+        "source": "spotify",
+        "url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL",
+        "tracks": [
+          {
+            "title": "love. - wave to earth",
+            "artist": "wave to earth",
+            "query": "love. wave to earth",
+            "duration": 307,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "bad - wave to earth",
+            "artist": "wave to earth",
+            "query": "bad wave to earth",
+            "duration": 263,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "pink - wave to earth",
+            "artist": "wave to earth",
+            "query": "pink wave to earth",
+            "duration": 267,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "homesick - wave to earth",
+            "artist": "wave to earth",
+            "query": "homesick wave to earth",
+            "duration": 306,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "evening glow - wave to earth",
+            "artist": "wave to earth",
+            "query": "evening glow wave to earth",
+            "duration": 216,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "so real - wave to earth",
+            "artist": "wave to earth",
+            "query": "so real wave to earth",
+            "duration": 273,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "peach eyes - wave to earth",
+            "artist": "wave to earth",
+            "query": "peach eyes wave to earth",
+            "duration": 185,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "light - wave to earth",
+            "artist": "wave to earth",
+            "query": "light wave to earth",
+            "duration": 225,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "seasons - wave to earth",
+            "artist": "wave to earth",
+            "query": "seasons wave to earth",
+            "duration": 255,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "bonfire - wave to earth",
+            "artist": "wave to earth",
+            "query": "bonfire wave to earth",
+            "duration": 280,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "wave - wave to earth",
+            "artist": "wave to earth",
+            "query": "wave wave to earth",
+            "duration": 270,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "bird - wave to earth",
+            "artist": "wave to earth",
+            "query": "bird wave to earth",
+            "duration": 216,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "ALL NIGHT LONG - Mishaal Tamer",
+            "artist": "Mishaal Tamer",
+            "query": "ALL NIGHT LONG Mishaal Tamer",
+            "duration": 213,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "LOVE ME LOVE - Mishaal Tamer",
+            "artist": "Mishaal Tamer",
+            "query": "LOVE ME LOVE Mishaal Tamer",
+            "duration": 160,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Try Again - JAEHYUN, d.ear",
+            "artist": "JAEHYUN, d.ear",
+            "query": "Try Again JAEHYUN, d.ear",
+            "duration": 178,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "ONLY - LEEHI",
+            "artist": "LEEHI",
+            "query": "ONLY LEEHI",
+            "duration": 240,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Sunsetz - Cigarettes After Sex",
+            "artist": "Cigarettes After Sex",
+            "query": "Sunsetz Cigarettes After Sex",
+            "duration": 214,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Don't Look Down - Kelcey Ayer",
+            "artist": "Kelcey Ayer",
+            "query": "Don't Look Down Kelcey Ayer",
+            "duration": 233,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "EVERYTHING - The Black Skirts",
+            "artist": "The Black Skirts",
+            "query": "EVERYTHING The Black Skirts",
+            "duration": 293,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "NICELY - ROHAN",
+            "artist": "ROHAN",
+            "query": "NICELY ROHAN",
+            "duration": 159,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "4 Letters - B.I, James Reid",
+            "artist": "B.I, James Reid",
+            "query": "4 Letters B.I, James Reid",
+            "duration": 181,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Milan - Bennett Woolsey",
+            "artist": "Bennett Woolsey",
+            "query": "Milan Bennett Woolsey",
+            "duration": 255,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Tangerine - B.I",
+            "artist": "B.I",
+            "query": "Tangerine B.I",
+            "duration": 198,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "About You - The 1975",
+            "artist": "The 1975",
+            "query": "About You The 1975",
+            "duration": 326,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Lily of The Valley - DANIEL",
+            "artist": "DANIEL",
+            "query": "Lily of The Valley DANIEL",
+            "duration": 297,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "lovergirl - saturra",
+            "artist": "saturra",
+            "query": "lovergirl saturra",
+            "duration": 135,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Soulmates (live acoustic) - Lonely Parrots, Max Embers, Michael Martinez",
+            "artist": "Lonely Parrots, Max Embers, Michael Martinez",
+            "query": "Soulmates (live acoustic) Lonely Parrots, Max Embers, Michael Martinez",
+            "duration": 216,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "daisy. - wave to earth",
+            "artist": "wave to earth",
+            "query": "daisy. wave to earth",
+            "duration": 218,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "the one exists in my memories - dosii",
+            "artist": "dosii",
+            "query": "the one exists in my memories dosii",
+            "duration": 228,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "fairy of shampoo - dosii",
+            "artist": "dosii",
+            "query": "fairy of shampoo dosii",
+            "duration": 212,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "in dreams - dosii",
+            "artist": "dosii",
+            "query": "in dreams dosii",
+            "duration": 221,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "lovememore. - dosii",
+            "artist": "dosii",
+            "query": "lovememore. dosii",
+            "duration": 231,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "My Love Mine All Mine - Mitski",
+            "artist": "Mitski",
+            "query": "My Love Mine All Mine Mitski",
+            "duration": 137,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Shower - Yebit",
+            "artist": "Yebit",
+            "query": "Shower Yebit",
+            "duration": 150,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Wings - So!YoON!, Phum Viphurit",
+            "artist": "So!YoON!, Phum Viphurit",
+            "query": "Wings So!YoON!, Phum Viphurit",
+            "duration": 195,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "summer, night (feat. wave to earth) - Jeon Jin Hee, wave to earth",
+            "artist": "Jeon Jin Hee, wave to earth",
+            "query": "summer, night (feat. wave to earth) Jeon Jin Hee, wave to earth",
+            "duration": 279,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Doughnut - TWICE",
+            "artist": "TWICE",
+            "query": "Doughnut TWICE",
+            "duration": 263,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Maze in the Mirror - TOMORROW X TOGETHER",
+            "artist": "TOMORROW X TOGETHER",
+            "query": "Maze in the Mirror TOMORROW X TOGETHER",
+            "duration": 226,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "You, Clouds, Rain - Heize, Shin Yong Jae",
+            "artist": "Heize, Shin Yong Jae",
+            "query": "You, Clouds, Rain Heize, Shin Yong Jae",
+            "duration": 205,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Falling Leaves are Beautiful - Heize",
+            "artist": "Heize",
+            "query": "Falling Leaves are Beautiful Heize",
+            "duration": 202,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Diary - Heize",
+            "artist": "Heize",
+            "query": "Diary Heize",
+            "duration": 250,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "LOVE FOOL - STAYC",
+            "artist": "STAYC",
+            "query": "LOVE FOOL STAYC",
+            "duration": 218,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "seoul (prod. HONNE) - RM",
+            "artist": "RM",
+            "query": "seoul (prod. HONNE) RM",
+            "duration": 275,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "No.2 (with parkjiyoon) - RM, parkjiyoon",
+            "artist": "RM, parkjiyoon",
+            "query": "No.2 (with parkjiyoon) RM, parkjiyoon",
+            "duration": 193,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Forg_tful (with Kim Sawol) - RM, Kim Sawol",
+            "artist": "RM, Kim Sawol",
+            "query": "Forg_tful (with Kim Sawol) RM, Kim Sawol",
+            "duration": 162,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Still With You - Jung Kook",
+            "artist": "Jung Kook",
+            "query": "Still With You Jung Kook",
+            "duration": 239,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Daydream (feat. LeeHi) - B.I, LEEHI",
+            "artist": "B.I, LEEHI",
+            "query": "Daydream (feat. LeeHi) B.I, LEEHI",
+            "duration": 194,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Restless - BIBI",
+            "artist": "BIBI",
+            "query": "Restless BIBI",
+            "duration": 267,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Hurt - NewJeans",
+            "artist": "NewJeans",
+            "query": "Hurt NewJeans",
+            "duration": 177,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "pueblo - wave to earth",
+            "artist": "wave to earth",
+            "query": "pueblo wave to earth",
+            "duration": 228,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "White Night - NCT 127",
+            "artist": "NCT 127",
+            "query": "White Night NCT 127",
+            "duration": 243,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Gold Dust - NCT 127",
+            "artist": "NCT 127",
+            "query": "Gold Dust NCT 127",
+            "duration": 249,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "The Rainy Night - NCT 127",
+            "artist": "NCT 127",
+            "query": "The Rainy Night NCT 127",
+            "duration": 199,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "WA-R-R - Colde",
+            "artist": "Colde",
+            "query": "WA-R-R Colde",
+            "duration": 272,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Rainy Tapestry - Lamp",
+            "artist": "Lamp",
+            "query": "Rainy Tapestry Lamp",
+            "duration": 326,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Bittersweet (feat. LeeHi) - WONWOO, MINGYU, LEEHI",
+            "artist": "WONWOO, MINGYU, LEEHI",
+            "query": "Bittersweet (feat. LeeHi) WONWOO, MINGYU, LEEHI",
+            "duration": 174,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Just A Little Bit - ENHYPEN",
+            "artist": "ENHYPEN",
+            "query": "Just A Little Bit ENHYPEN",
+            "duration": 167,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Inside Out - Gemini",
+            "artist": "Gemini",
+            "query": "Inside Out Gemini",
+            "duration": 111,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Iced Coffee - Red Velvet",
+            "artist": "Red Velvet",
+            "query": "Iced Coffee Red Velvet",
+            "duration": 198,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Scenery - Red Velvet",
+            "artist": "Red Velvet",
+            "query": "Scenery Red Velvet",
+            "duration": 209,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Love Is a Flower - Colde",
+            "artist": "Colde",
+            "query": "Love Is a Flower Colde",
+            "duration": 131,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "for lovers who hesitate - JANNABI",
+            "artist": "JANNABI",
+            "query": "for lovers who hesitate JANNABI",
+            "duration": 265,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Walk in the Park - Beach House",
+            "artist": "Beach House",
+            "query": "Walk in the Park Beach House",
+            "duration": 322,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "긴 밤 (feat. GIRIBOY) - Seori, GIRIBOY",
+            "artist": "Seori, GIRIBOY",
+            "query": "긴 밤 (feat. GIRIBOY) Seori, GIRIBOY",
+            "duration": 210,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Yosemite - Lana Del Rey",
+            "artist": "Lana Del Rey",
+            "query": "Yosemite Lana Del Rey",
+            "duration": 306,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "BEHIND - WOODZ",
+            "artist": "WOODZ",
+            "query": "BEHIND WOODZ",
+            "duration": 240,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "calla - wave to earth",
+            "artist": "wave to earth",
+            "query": "calla wave to earth",
+            "duration": 259,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "H.S.K.T. (feat. Wonstein) - LEEHI, Wonstein",
+            "artist": "LEEHI, Wonstein",
+            "query": "H.S.K.T. (feat. Wonstein) LEEHI, Wonstein",
+            "duration": 204,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "To us (feat. wave to earth & WAVY) - Apro, wave to earth, WAVY",
+            "artist": "Apro, wave to earth, WAVY",
+            "query": "To us (feat. wave to earth & WAVY) Apro, wave to earth, WAVY",
+            "duration": 254,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "dreams, books, power and walls - JANNABI",
+            "artist": "JANNABI",
+            "query": "dreams, books, power and walls JANNABI",
+            "duration": 297,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "mon amour - Gemini",
+            "artist": "Gemini",
+            "query": "mon amour Gemini",
+            "duration": 160,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Mystery of Love - Sufjan Stevens",
+            "artist": "Sufjan Stevens",
+            "query": "Mystery of Love Sufjan Stevens",
+            "duration": 248,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Cariño - The Marías",
+            "artist": "The Marías",
+            "query": "Cariño The Marías",
+            "duration": 258,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Violet - Daniel Caesar",
+            "artist": "Daniel Caesar",
+            "query": "Violet Daniel Caesar",
+            "duration": 144,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "space - The Poles",
+            "artist": "The Poles",
+            "query": "space The Poles",
+            "duration": 224,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Strawberry Moon - The Poles",
+            "artist": "The Poles",
+            "query": "Strawberry Moon The Poles",
+            "duration": 329,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Manta Ray - Siberian Giant",
+            "artist": "Siberian Giant",
+            "query": "Manta Ray Siberian Giant",
+            "duration": 192,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "beck. - wave to earth",
+            "artist": "wave to earth",
+            "query": "beck. wave to earth",
+            "duration": 246,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "slow dive - wave to earth",
+            "artist": "wave to earth",
+            "query": "slow dive wave to earth",
+            "duration": 273,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "holyland - wave to earth",
+            "artist": "wave to earth",
+            "query": "holyland wave to earth",
+            "duration": 262,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "NAN CHUN - SE SO NEON",
+            "artist": "SE SO NEON",
+            "query": "NAN CHUN SE SO NEON",
+            "duration": 229,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Teenage Blue - Dreamgirl",
+            "artist": "Dreamgirl",
+            "query": "Teenage Blue Dreamgirl",
+            "duration": 234,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "(They Long To Be) Close To You - Carpenters",
+            "artist": "Carpenters",
+            "query": "(They Long To Be) Close To You Carpenters",
+            "duration": 273,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "L.A. (‭+1 .818.643.6885‬) - will hyde, tiffi, dress",
+            "artist": "will hyde, tiffi, dress",
+            "query": "L.A. (‭+1 .818.643.6885‬) will hyde, tiffi, dress",
+            "duration": 164,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Enough (prod. APRO) - Colde, 정유미, APRO",
+            "artist": "Colde, 정유미, APRO",
+            "query": "Enough (prod. APRO) Colde, 정유미, APRO",
+            "duration": 183,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "nouvelle vague - wave to earth",
+            "artist": "wave to earth",
+            "query": "nouvelle vague wave to earth",
+            "duration": 229,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Darling - LEEHI",
+            "artist": "LEEHI",
+            "query": "Darling LEEHI",
+            "duration": 235,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Round and Around - JO YURI",
+            "artist": "JO YURI",
+            "query": "Round and Around JO YURI",
+            "duration": 79,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "eighteen winter - Soombee",
+            "artist": "Soombee",
+            "query": "eighteen winter Soombee",
+            "duration": 199,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "warm - Junggigo",
+            "artist": "Junggigo",
+            "query": "warm Junggigo",
+            "duration": 188,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "annie. - wave to earth",
+            "artist": "wave to earth",
+            "query": "annie. wave to earth",
+            "duration": 200,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "slow dive - wave to earth",
+            "artist": "wave to earth",
+            "query": "slow dive wave to earth",
+            "duration": 273,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "MIMI - youra",
+            "artist": "youra",
+            "query": "MIMI youra",
+            "duration": 207,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          },
+          {
+            "title": "Amusement Park - BAEKHYUN",
+            "artist": "BAEKHYUN",
+            "query": "Amusement Park BAEKHYUN",
+            "duration": 256,
+            "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
+          }
+        ]
+      },
+      {
+        "name": "❤️ Concierto: Macha y El Bloque Depresivo (100% Lúcidos)",
+        "source": "ytmusic",
+        "url": "https://www.youtube.com/watch?v=xs76QT1IHEM",
+        "tracks": [
+          {
+            "title": "Macha y El Bloque Depresivo - 100% Lúcidos (Concierto Completo)",
+            "artist": "Macha y El Bloque Depresivo",
+            "query": "https://www.youtube.com/watch?v=xs76QT1IHEM",
+            "duration": 5077,
+            "webpage_url": "https://www.youtube.com/watch?v=xs76QT1IHEM"
+          }
+        ]
+      },
+      {
+        "name": "🎸 Radio de Elito (macha y el bloque depresivo)",
+        "source": "radio",
+        "url": "custom:radio",
+        "tracks": [
+          {
+            "title": "Solo Tú - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Solo Tú Macha Y El Bloque Depresivo",
+            "duration": 197,
+            "webpage_url": "https://www.deezer.com/track/3452316271"
+          },
+          {
+            "title": "La Nave del Olvido - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "La Nave del Olvido Macha Y El Bloque Depresivo",
+            "duration": 235,
+            "webpage_url": "https://www.deezer.com/track/3452316201"
+          },
+          {
+            "title": "Aunque No Sea Conmigo - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Aunque No Sea Conmigo Macha Y El Bloque Depresivo",
+            "duration": 188,
+            "webpage_url": "https://www.deezer.com/track/3452311221"
+          },
+          {
+            "title": "Continentales - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Continentales Macha Y El Bloque Depresivo",
+            "duration": 165,
+            "webpage_url": "https://www.deezer.com/track/3452302171"
+          },
+          {
+            "title": "El Gran Tirano - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "El Gran Tirano Macha Y El Bloque Depresivo",
+            "duration": 202,
+            "webpage_url": "https://www.deezer.com/track/3452316251"
+          },
+          {
+            "title": "La Carretera - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "La Carretera Macha Y El Bloque Depresivo",
+            "duration": 192,
+            "webpage_url": "https://www.deezer.com/track/3452316191"
+          },
+          {
+            "title": "Pequeña Serenata Diurna - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Pequeña Serenata Diurna Macha Y El Bloque Depresivo",
+            "duration": 262,
+            "webpage_url": "https://www.deezer.com/track/3452316211"
+          },
+          {
+            "title": "Turista - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Turista Macha Y El Bloque Depresivo",
+            "duration": 180,
+            "webpage_url": "https://www.deezer.com/track/3772636162"
+          },
+          {
+            "title": "Loca - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Loca Macha Y El Bloque Depresivo",
+            "duration": 220,
+            "webpage_url": "https://www.deezer.com/track/3452311191"
+          },
+          {
+            "title": "Amiga - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Amiga Macha Y El Bloque Depresivo",
+            "duration": 215,
+            "webpage_url": "https://www.deezer.com/track/3772636212"
+          },
+          {
+            "title": "No Hay Novedad - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "No Hay Novedad Macha Y El Bloque Depresivo",
+            "duration": 212,
+            "webpage_url": "https://www.deezer.com/track/3452316221"
+          },
+          {
+            "title": "Vergüenza Ajena - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Vergüenza Ajena Macha Y El Bloque Depresivo",
+            "duration": 157,
+            "webpage_url": "https://www.deezer.com/track/3452316181"
+          },
+          {
+            "title": "Trátame Suavemente - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Trátame Suavemente Macha Y El Bloque Depresivo",
+            "duration": 182,
+            "webpage_url": "https://www.deezer.com/track/3452311241"
+          },
+          {
+            "title": "Procuro Olvidarte / Pásalo Bien - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Procuro Olvidarte / Pásalo Bien Macha Y El Bloque Depresivo",
+            "duration": 218,
+            "webpage_url": "https://www.deezer.com/track/3452302341"
+          },
+          {
+            "title": "Ven Acá a Entibiar Mi Corazón - Macha Y El Bloque Depresivo",
+            "artist": "Macha Y El Bloque Depresivo",
+            "query": "Ven Acá a Entibiar Mi Corazón Macha Y El Bloque Depresivo",
+            "duration": 210,
+            "webpage_url": "https://www.deezer.com/track/3452311211"
+          }
+        ]
+      }
+    ]
+  }
+}
