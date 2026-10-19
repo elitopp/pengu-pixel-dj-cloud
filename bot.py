@@ -962,65 +962,67 @@ def build_player_embed(guild: discord.Guild, state: GuildMusicState) -> discord.
 
     if not song:
         embed = discord.Embed(
-            title="🐧🎧 THOMI PIXEL JUKEBOX // SPOTIFY & YT MUSIC 24/7",
+            title="🐧✨ PENGU PIXEL JUKEBOX • SPOTIFY EDITION",
             description=(
-                "╭──────────────────────────────────────────╮\n"
-                "  🎨 **¡Bienvenido a la Cabina Musical de Thomi!**\n"
-                "  Escucha canciones completas y conecta tus propias\n"
-                "  cuentas/playlists de **Spotify y YouTube Music**.\n"
-                "╰──────────────────────────────────────────╯\n\n"
-                "✨ **¿Cómo usar la cabina súper fácil?**\n"
-                "▸ **`➕ Pedir Canción / Playlist`**: Escribe un artista, canción o link de playlist\n"
-                "▸ **`💚❤️ Mi Spotify / YT Music`**: Conecta tus credenciales, playlists o gustos\n"
-                "▸ **`❤️ Me Gusta`**: Guarda la canción que esté sonando en tu perfil\n"
-                "▸ **`🎉 Modo Fiesta`**: Mezcla automáticamente la música de todos en el canal"
+                "```ini\n"
+                "[ ESTADO: ❄️ LISTO EN EL IGLÚ // AUDIO HD 320KBPS ]\n"
+                "```\n"
+                "### 🎧 ¡Cabina Musical de Thomi!\n"
+                "Escucha música en calidad de estudio conectando tu cuenta o playlists de **Spotify**.\n\n"
+                "╭─── **Comandos Rápidos** ───╮\n"
+                "  ▸ `➕ Pedir Canción` ➔ Escribe cualquier canción o artista\n"
+                "  ▸ `💚 Mi Spotify` ➔ Vincula tus playlists y canciones favoritas\n"
+                "  ▸ `❤️ Me Gusta` ➔ Guarda la canción actual en tu colección\n"
+                "╰────────────────────────────╯\n\n"
+                "💡 *Entra a un canal de voz y presiona **`➕ Pedir Canción`** para empezar.*"
             ),
             color=COLOR_PIXEL_CYAN,
         )
+        embed.set_footer(text="✨ Pengu Pixel DJ • Audio Pure HD • Spotify Integration")
         return embed
 
     vol_bars = int(round(state.volume * 10))
     vol_visual = "▰" * min(vol_bars, 10) + "▱" * max(0, 10 - vol_bars)
 
     embed = discord.Embed(
-        title="🐧💿 SONANDO AHORA EN EL SERVER DE THOMI",
+        title="🐧💿 SONANDO AHORA EN EL IGLÚ",
         description=(
-            f"### 🎶 [{song.title}]({song.webpage_url})\n"
+            f"### 🎶 [{song.title}]({song.webpage_url})\n\n"
             f"```ini\n"
-            f"[ ▰▰▰▰▰▱▱▱▱▱▱▱ ] 🔊 {int(state.volume * 100)}% ({vol_visual})\n"
+            f"[ ▰▰▰▰▰▱▱▱▱▱▱▱ ] 🔊 Volumen: {int(state.volume * 100)}% ({vol_visual})\n"
             f"```"
         ),
-        color=COLOR_PIXEL_PINK,
+        color=COLOR_SPOTIFY_GREEN,
     )
     embed.add_field(name="⏱️ Duración", value=f"`{song.duration_str}`", inline=True)
-    embed.add_field(name="🎙️ Canal / Artista", value=f"`{song.uploader[:25]}`", inline=True)
+    embed.add_field(name="🎙️ Artista", value=f"`{song.uploader[:25]}`", inline=True)
     embed.add_field(name="🐧 Pedido por", value=song.requester, inline=True)
-    embed.add_field(name="🎛️ Filtro de Audio", value=f"`{filter_name}`", inline=True)
-    embed.add_field(name="🔁 Modo Loop", value=f"`{loop_icons[state.loop_mode]}`", inline=True)
-    embed.add_field(name="📜 En Cola", value=f"`{len(state.queue)} canciones`", inline=True)
+    embed.add_field(name="🎛️ Filtro", value=f"`{filter_name}`", inline=True)
+    embed.add_field(name="🔁 Loop", value=f"`{loop_icons[state.loop_mode]}`", inline=True)
+    embed.add_field(name="📜 En Cola", value=f"`{len(state.queue)} pistas`", inline=True)
 
     if state.queue:
         upcoming = "\n".join(
-            f"`{i+1}.` **{s.title[:42]}** (`{s.duration_str}`)"
-            for i, s in enumerate(state.queue[:5])
+            f"`{i+1}.` **{s.title[:38]}** (`{s.duration_str}`)"
+            for i, s in enumerate(state.queue[:4])
         )
-        if len(state.queue) > 5:
-            upcoming += f"\n*...y {len(state.queue) - 5} canciones más en la cola*"
-        embed.add_field(name="⏭️ Próximas Canciones en el Iglú", value=upcoming, inline=False)
+        if len(state.queue) > 4:
+            upcoming += f"\n*...y {len(state.queue) - 4} canciones más en espera*"
+        embed.add_field(name="⏭️ Próximas en Cola", value=upcoming, inline=False)
 
     if song.thumbnail:
         embed.set_thumbnail(url=song.thumbnail)
-    embed.set_footer(text="🎨 Server de Thomi • Pistas Completas en Caché HD • Spotify & YouTube Music")
+    embed.set_footer(text="✨ Pengu Pixel DJ • Audio HD 320kbps • Spotify Pure")
     return embed
 
 
 # ==============================================================================
 # MODALES Y VISTAS DE USUARIO (TODOS LOS LABELS <= 45 CHARS GARANTIZADOS)
 # ==============================================================================
-class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción o Playlist"):
+class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción (Spotify)"):
     query = discord.ui.TextInput(
-        label="Canción, Artista o Link de Playlist",
-        placeholder="Ej: Luis Miguel, Daft Punk - Veridis Quo o link de Spotify/YT",
+        label="Canción, Artista o Link de Spotify",
+        placeholder="Ej: wave to earth - love, Luis Miguel, o link de Spotify",
         required=True,
         max_length=300,
     )
@@ -1459,65 +1461,55 @@ class SetPersonalTastesModal(discord.ui.Modal, title="🎸 Asignar Música de Mi
 
 def build_user_music_hub_embed(user: discord.abc.User, profile: dict) -> discord.Embed:
     sp = profile.get("spotify", {})
-    ytm = profile.get("ytmusic", {})
-    playlists = profile.get("playlists", [])
+    playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
     liked = profile.get("liked_songs", [])
     tastes = profile.get("tastes", [])
 
     sp_status = (
-        f"🟢 **Vinculado** ({sp.get('account_name') or 'Playlists Activas'})"
+        f"🟢 **Conectado** (`{sp.get('account_name') or 'Playlists Activas'}`)"
         if sp.get("connected")
-        else "⚪ No vinculado aún"
-    )
-    ytm_status = (
-        f"🔴 **Vinculado** ({ytm.get('account_name') or 'Playlists Activas'})"
-        if ytm.get("connected")
-        else "⚪ No vinculado aún"
+        else "⚪ *No vinculado aún*"
     )
 
     embed = discord.Embed(
-        title=f"🎧 CENTRO MUSICAL PERSONAL DE {user.display_name.upper()}",
+        title=f"🎧 CENTRO SPOTIFY DE {user.display_name.upper()}",
         description=(
-            "Bienvenido a tu espacio privado. Todo lo que configures aquí **es solo tuyo** "
-            "y puedes reproducirlo en cualquier momento con **1 clic**:\n"
+            "```ini\n"
+            "[ PERFIL DE SPOTIFY PERSONAL // ACCESO CON 1 CLIC ]\n"
+            "```\n"
+            "Conecta tu cuenta o playlists de **Spotify** para escucharlas de inmediato con calidad HD:\n"
         ),
         color=COLOR_SPOTIFY_GREEN if sp.get("connected") else COLOR_PIXEL_CYAN,
     )
     embed.add_field(name="💚 Estado Spotify", value=sp_status, inline=True)
-    embed.add_field(name="❤️ Estado YouTube Music", value=ytm_status, inline=True)
-    embed.add_field(name="⭐ Mis Favoritos ('Me Gusta')", value=f"`{len(liked)} canciones`", inline=True)
+    embed.add_field(name="❤️ Mis Favoritos", value=f"`{len(liked)} pistas`", inline=True)
+    embed.add_field(name="📂 Listas Guardadas", value=f"`{len(playlists)} playlists`", inline=True)
 
     if playlists:
         pl_lines = "\n".join(
-            f"• **{p['name']}** (`{len(p.get('tracks', []))} pistas`)" for p in playlists[:8]
+            f"• **{p['name']}** (`{len(p.get('tracks', []))} canciones`)" for p in playlists[:6]
         )
-        embed.add_field(name="📂 Mis Playlists Guardadas", value=pl_lines, inline=False)
+        embed.add_field(name="🎶 Playlists de Spotify", value=pl_lines, inline=False)
     else:
         embed.add_field(
-            name="📂 Mis Playlists Guardadas",
-            value="*Pulsa **💚 Conectar Spotify**, **❤️ Conectar YT Music** o **🎸 Asignar Mis Gustos** abajo para agregar tus playlists o artistas.*",
+            name="🎶 Playlists de Spotify",
+            value="*Presiona **`💚 Conectar Spotify`** abajo para vincular tus listas.*",
             inline=False,
         )
 
     if tastes:
         embed.add_field(
-            name="🎸 Mis Gustos / Artistas Asignados",
-            value=", ".join(f"`{t}`" for t in tastes[:10]),
-            inline=False,
-        )
-    else:
-        embed.add_field(
-            name="🎸 Mis Gustos / Artistas Asignados",
-            value="*Pulsa **`🎸 Asignar Mis Gustos`** para escribir tus artistas (ej. Luis Miguel, Daft Punk) y reproducir tu radio.*",
+            name="🎸 Artistas y Gustos",
+            value=", ".join(f"`{t}`" for t in tastes[:8]),
             inline=False,
         )
 
-    embed.set_footer(text="🔒 Tus credenciales y playlists se manejan a nivel de tu usuario de Discord")
+    embed.set_footer(text="🔒 Tu música es privada y solo tú puedes gestionarla desde este panel")
     return embed
 
 
 class UserPlaylistSelect(discord.ui.Select):
-    """Menú desplegable persistente para reproducir tus playlists o abrir los modales de conexión."""
+    """Menú desplegable persistente para reproducir tus playlists de Spotify o abrir la conexión."""
 
     def __init__(self, bot: "PenguPixelBot", user_id: Optional[int] = None, profile: Optional[dict] = None):
         self.bot = bot
@@ -1530,45 +1522,38 @@ class UserPlaylistSelect(discord.ui.Select):
                     discord.SelectOption(
                         label=f"⭐ Mis Canciones Favoritas ({len(liked)} pistas)",
                         value="__liked__",
-                        description="Reproducir las canciones que guardaste con ❤️ en Discord/Spotify",
+                        description="Reproducir tus canciones favoritas guardadas con Me Gusta",
                     )
                 )
 
-            for idx, pl in enumerate(profile.get("playlists", [])[:18]):
+            playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+            for idx, pl in enumerate(playlists[:18]):
                 count = len(pl.get("tracks", []))
                 options.append(
                     discord.SelectOption(
                         label=f"{pl['name'][:80]}",
                         value=f"pl:{idx}",
-                        description=f"Reproducir {count} canciones de esta playlist ahora",
+                        description=f"Reproducir {count} canciones de esta playlist de Spotify",
                     )
                 )
 
-        # Siempre ofrecer accesos rápidos para agregar playlist/artista directamente desde el menú desplegable
         options.append(
             discord.SelectOption(
                 label="💚 Agregar Playlist / Artista de Spotify...",
                 value="__open_spotify__",
-                description="Abre la ventana para pegar tu link de Spotify, Token o escribir un artista",
-            )
-        )
-        options.append(
-            discord.SelectOption(
-                label="❤️ Agregar Playlist / Artista de YouTube Music...",
-                value="__open_ytmusic__",
-                description="Abre la ventana para pegar tu link de YT Music o escribir un artista",
+                description="Abre la ventana para pegar tu link de Spotify, Token o Artista",
             )
         )
         options.append(
             discord.SelectOption(
                 label="🎸 Escribir Mis Artistas Favoritos (Crear Mi Radio)...",
                 value="__open_tastes__",
-                description="Escribe tus cantantes o bandas favoritas y empieza a reproducir",
+                description="Escribe tus bandas preferidas y empieza a reproducir",
             )
         )
 
         super().__init__(
-            placeholder="▶️ Elige tu Playlist o agrega una nueva aquí...",
+            placeholder="▶️ Elige tu Playlist de Spotify aquí...",
             min_values=1,
             max_values=1,
             options=options[:25],
@@ -1580,8 +1565,6 @@ class UserPlaylistSelect(discord.ui.Select):
         val = self.values[0]
         if val == "__open_spotify__":
             return await interaction.response.send_modal(ConnectSpotifyModal(self.bot))
-        if val == "__open_ytmusic__":
-            return await interaction.response.send_modal(ConnectYTMusicModal(self.bot))
         if val == "__open_tastes__":
             return await interaction.response.send_modal(SetPersonalTastesModal(self.bot))
 
@@ -1593,11 +1576,11 @@ class UserPlaylistSelect(discord.ui.Select):
             pl_title = f"⭐ Favoritos de {interaction.user.display_name}"
         elif val.startswith("pl:"):
             idx = int(val.split(":", 1)[1])
-            pls = profile.get("playlists", [])
-            if idx >= len(pls):
+            playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+            if idx >= len(playlists):
                 return await interaction.followup.send("⚠️ Playlist no encontrada.", ephemeral=True)
-            pl_title = pls[idx]["name"]
-            tracks = pls[idx].get("tracks", [])
+            pl_title = playlists[idx]["name"]
+            tracks = playlists[idx].get("tracks", [])
         else:
             return await interaction.followup.send("ℹ️ Selecciona una opción válida.", ephemeral=True)
 
@@ -1605,7 +1588,7 @@ class UserPlaylistSelect(discord.ui.Select):
 
 
 class UserMusicHubView(discord.ui.View):
-    """Panel interactivo persistente para gestionar Spotify, YouTube Music y Gustos del usuario."""
+    """Panel interactivo persistente para gestionar Spotify y Favoritos del usuario."""
 
     def __init__(self, bot: "PenguPixelBot", user_id: Optional[int] = None):
         super().__init__(timeout=None)
@@ -1623,15 +1606,6 @@ class UserMusicHubView(discord.ui.View):
         await interaction.response.send_modal(ConnectSpotifyModal(self.bot))
 
     @discord.ui.button(
-        label="❤️ Conectar YT Music",
-        style=discord.ButtonStyle.danger,
-        custom_id="pengu:hub_ytmusic",
-        row=1,
-    )
-    async def btn_ytmusic(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ConnectYTMusicModal(self.bot))
-
-    @discord.ui.button(
         label="🎸 Asignar Mis Gustos",
         style=discord.ButtonStyle.primary,
         custom_id="pengu:hub_tastes",
@@ -1641,17 +1615,16 @@ class UserMusicHubView(discord.ui.View):
         await interaction.response.send_modal(SetPersonalTastesModal(self.bot))
 
     @discord.ui.button(
-        label="📻 Reproducir Mi Radio Personal",
+        label="📻 Reproducir Mi Radio",
         style=discord.ButtonStyle.secondary,
         custom_id="pengu:hub_radio",
-        row=2,
+        row=1,
     )
     async def btn_my_radio(self, interaction: discord.Interaction, button: discord.ui.Button):
         profile = get_user_profile(interaction.user.id, interaction.user.display_name)
         has_any = bool(
             profile.get("liked_songs") or profile.get("playlists") or profile.get("tastes")
         )
-        # Si aún no ha asignado gustos, abrir directamente la ventana para que escriba su artista (ej. Luis Miguel)
         if not has_any:
             return await interaction.response.send_modal(SetPersonalTastesModal(self.bot))
 
@@ -1660,22 +1633,16 @@ class UserMusicHubView(discord.ui.View):
 
         for s in profile.get("liked_songs", []):
             pool.append(s)
-        for pl in profile.get("playlists", []):
+        playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+        for pl in playlists:
             pool.extend(pl.get("tracks", []))
         for taste in profile.get("tastes", []):
             found = await fetch_artist_or_mix_tracks(taste, limit=5)
             if found:
                 pool.extend(found)
-            else:
-                pool.append(
-                    {
-                        "title": f"Mix: {taste}",
-                        "artist": taste,
-                        "query": taste,
-                        "duration": 0,
-                        "webpage_url": "https://open.spotify.com",
-                    }
-                )
+
+        if not pool:
+            return await interaction.followup.send("⚠️ No tienes canciones para tu radio aún.", ephemeral=True)
 
         random.shuffle(pool)
         selected = pool[:15]
@@ -1685,9 +1652,9 @@ class UserMusicHubView(discord.ui.View):
 
     @discord.ui.button(
         label="🗑️ Limpiar Mis Datos",
-        style=discord.ButtonStyle.secondary,
+        style=discord.ButtonStyle.danger,
         custom_id="pengu:hub_clear",
-        row=2,
+        row=1,
     )
     async def btn_clear_profile(self, interaction: discord.Interaction, button: discord.ui.Button):
         profiles = load_all_user_profiles()
@@ -1741,7 +1708,7 @@ class AudioFilterSelect(discord.ui.Select):
 
 
 class MusicControlView(discord.ui.View):
-    """Panel interactivo de botones para controlar la música y cuentas de Spotify/YT Music sin comandos."""
+    """Panel interactivo de botones para controlar la música y cuenta de Spotify."""
 
     def __init__(self, bot: "PenguPixelBot"):
         super().__init__(timeout=None)
@@ -1749,7 +1716,7 @@ class MusicControlView(discord.ui.View):
         self.add_item(AudioFilterSelect(bot))
 
     @discord.ui.button(
-        label="➕ Pedir Canción / Playlist",
+        label="➕ Pedir Canción",
         style=discord.ButtonStyle.success,
         custom_id="pengu:request_song",
         row=0,
@@ -1758,57 +1725,19 @@ class MusicControlView(discord.ui.View):
         await interaction.response.send_modal(RequestSongModal(self.bot))
 
     @discord.ui.button(
-        label="⏯️ Pausar/Reanudar",
+        label="💚 Mi Spotify",
         style=discord.ButtonStyle.primary,
-        custom_id="pengu:pause_resume",
+        custom_id="pengu:user_hub",
         row=0,
     )
-    async def pause_resume_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        vc = interaction.guild.voice_client if interaction.guild else None
-        if not vc:
-            return await interaction.response.send_message(
-                "🐧 No estoy reproduciendo nada ahora mismo.", ephemeral=True
-            )
-        if vc.is_playing():
-            vc.pause()
-            await interaction.response.send_message("⏸️ Música pausada.", ephemeral=True)
-        elif vc.is_paused():
-            vc.resume()
-            await interaction.response.send_message("▶️ ¡Música reanudada!", ephemeral=True)
-        else:
-            await interaction.response.send_message("🐧 No hay ninguna pista activa.", ephemeral=True)
-
-    @discord.ui.button(
-        label="⏭️ Saltar",
-        style=discord.ButtonStyle.secondary,
-        custom_id="pengu:skip",
-        row=0,
-    )
-    async def skip_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        vc = interaction.guild.voice_client if interaction.guild else None
-        if vc and (vc.is_playing() or vc.is_paused()):
-            vc.stop()
-            await interaction.response.send_message("⏭️ ¡Canción saltada!", ephemeral=True)
-        else:
-            await interaction.response.send_message("🐧 No hay canción para saltar.", ephemeral=True)
-
-    @discord.ui.button(
-        label="🔁 Loop",
-        style=discord.ButtonStyle.secondary,
-        custom_id="pengu:loop",
-        row=0,
-    )
-    async def loop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.guild:
-            return
-        state = get_music_state(interaction.guild.id)
-        order = ["off", "song", "queue"]
-        state.loop_mode = order[(order.index(state.loop_mode) + 1) % len(order)]
-        names = {"off": "Desactivado ➡️", "song": "Repetir Canción 🔂", "queue": "Repetir Cola 🔁"}
+    async def user_hub_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        profile = get_user_profile(interaction.user.id, interaction.user.display_name)
+        embed = build_user_music_hub_embed(interaction.user, profile)
         await interaction.response.send_message(
-            f"🔁 Modo de repetición: **{names[state.loop_mode]}**", ephemeral=True
+            embed=embed,
+            view=UserMusicHubView(self.bot, interaction.user.id),
+            ephemeral=True,
         )
-        await self.bot.refresh_player_message(interaction.guild)
 
     @discord.ui.button(
         label="❤️ Me Gusta",
@@ -1840,34 +1769,82 @@ class MusicControlView(discord.ui.View):
             update_user_profile(interaction.user.id, profile)
         await interaction.response.send_message(
             f"❤️ **¡Guardada en tus Favoritos!** `{song.title}`\n"
-            f"*(Tienes `{len(profile['liked_songs'])}` canciones en tu lista personal. Ábrela con el botón `💚❤️ Mi Spotify / YT Music`)*",
+            f"*(Tienes `{len(profile['liked_songs'])}` canciones guardadas. Ábrelas con el botón `💚 Mi Spotify`)*",
             ephemeral=True,
         )
 
     @discord.ui.button(
-        label="💚❤️ Mi Spotify / YT Music",
-        style=discord.ButtonStyle.success,
-        custom_id="pengu:user_hub",
-        row=1,
+        label="⏹️ Salir",
+        style=discord.ButtonStyle.danger,
+        custom_id="pengu:stop",
+        row=0,
     )
-    async def user_hub_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        profile = get_user_profile(interaction.user.id, interaction.user.display_name)
-        embed = build_user_music_hub_embed(interaction.user, profile)
+    async def stop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.guild:
+            return
+        state = get_music_state(interaction.guild.id)
+        state.queue.clear()
+        state.current = None
+        vc = interaction.guild.voice_client
+        if vc:
+            await vc.disconnect()
         await interaction.response.send_message(
-            embed=embed,
-            view=UserMusicHubView(self.bot, interaction.user.id),
-            ephemeral=True,
+            "⏹️ Reproductor detenido y cola limpiada. ¡Hasta pronto! 🐧", ephemeral=True
         )
+        await self.bot.refresh_player_message(interaction.guild)
 
     @discord.ui.button(
-        label="🎉 Modo Fiesta (Blend)",
-        style=discord.ButtonStyle.primary,
-        custom_id="pengu:party_blend",
+        label="⏯️ Pausar/Reanudar",
+        style=discord.ButtonStyle.secondary,
+        custom_id="pengu:pause_resume",
         row=1,
     )
-    async def party_blend_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        await self.bot.start_party_blend(interaction)
+    async def pause_resume_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client if interaction.guild else None
+        if not vc:
+            return await interaction.response.send_message(
+                "🐧 No estoy reproduciendo nada ahora mismo.", ephemeral=True
+            )
+        if vc.is_playing():
+            vc.pause()
+            await interaction.response.send_message("⏸️ Música pausada.", ephemeral=True)
+        elif vc.is_paused():
+            vc.resume()
+            await interaction.response.send_message("▶️ ¡Música reanudada!", ephemeral=True)
+        else:
+            await interaction.response.send_message("🐧 No hay ninguna pista activa.", ephemeral=True)
+
+    @discord.ui.button(
+        label="⏭️ Saltar",
+        style=discord.ButtonStyle.secondary,
+        custom_id="pengu:skip",
+        row=1,
+    )
+    async def skip_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client if interaction.guild else None
+        if vc and (vc.is_playing() or vc.is_paused()):
+            vc.stop()
+            await interaction.response.send_message("⏭️ ¡Canción saltada!", ephemeral=True)
+        else:
+            await interaction.response.send_message("🐧 No hay canción para saltar.", ephemeral=True)
+
+    @discord.ui.button(
+        label="🔁 Loop",
+        style=discord.ButtonStyle.secondary,
+        custom_id="pengu:loop",
+        row=1,
+    )
+    async def loop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.guild:
+            return
+        state = get_music_state(interaction.guild.id)
+        order = ["off", "song", "queue"]
+        state.loop_mode = order[(order.index(state.loop_mode) + 1) % len(order)]
+        names = {"off": "Desactivado ➡️", "song": "Repetir Canción 🔂", "queue": "Repetir Cola 🔁"}
+        await interaction.response.send_message(
+            f"🔁 Modo de repetición: **{names[state.loop_mode]}**", ephemeral=True
+        )
+        await self.bot.refresh_player_message(interaction.guild)
 
     @discord.ui.button(
         label="🔀 Mezclar",
@@ -1888,7 +1865,7 @@ class MusicControlView(discord.ui.View):
         await self.bot.refresh_player_message(interaction.guild)
 
     @discord.ui.button(
-        label="🔉/🔊 Vol",
+        label="🔊 Vol",
         style=discord.ButtonStyle.secondary,
         custom_id="pengu:vol_cycle",
         row=1,
@@ -1905,26 +1882,6 @@ class MusicControlView(discord.ui.View):
             vc.source.volume = state.volume
         await interaction.response.send_message(
             f"🔊 Volumen ajustado a **{int(state.volume * 100)}%**", ephemeral=True
-        )
-        await self.bot.refresh_player_message(interaction.guild)
-
-    @discord.ui.button(
-        label="⏹️ Salir",
-        style=discord.ButtonStyle.danger,
-        custom_id="pengu:stop",
-        row=1,
-    )
-    async def stop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.guild:
-            return
-        state = get_music_state(interaction.guild.id)
-        state.queue.clear()
-        state.current = None
-        vc = interaction.guild.voice_client
-        if vc:
-            await vc.disconnect()
-        await interaction.response.send_message(
-            "⏹️ Reproductor detenido y cola limpiada. ¡Hasta pronto! 🐧", ephemeral=True
         )
         await self.bot.refresh_player_message(interaction.guild)
 

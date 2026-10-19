@@ -18,15 +18,7 @@
     "tastes": [
       "macha y el bloque depresivo"
     ],
-    "liked_songs": [
-      {
-        "title": "Macha y El Bloque Depresivo - 100% Lúcidos (Concierto Completo)",
-        "artist": "Macha y El Bloque Depresivo",
-        "query": "https://www.youtube.com/watch?v=xs76QT1IHEM",
-        "duration": 5077,
-        "webpage_url": "https://www.youtube.com/watch?v=xs76QT1IHEM"
-      }
-    ],
+    "liked_songs": [],
     "playlists": [
       {
         "name": "💚 wave to sexo",
@@ -690,20 +682,6 @@
             "query": "Amusement Park BAEKHYUN",
             "duration": 256,
             "webpage_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL"
-          }
-        ]
-      },
-      {
-        "name": "❤️ Concierto: Macha y El Bloque Depresivo (100% Lúcidos)",
-        "source": "ytmusic",
-        "url": "https://www.youtube.com/watch?v=xs76QT1IHEM",
-        "tracks": [
-          {
-            "title": "Macha y El Bloque Depresivo - 100% Lúcidos (Concierto Completo)",
-            "artist": "Macha y El Bloque Depresivo",
-            "query": "https://www.youtube.com/watch?v=xs76QT1IHEM",
-            "duration": 5077,
-            "webpage_url": "https://www.youtube.com/watch?v=xs76QT1IHEM"
           }
         ]
       },
