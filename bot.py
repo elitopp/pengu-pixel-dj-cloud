@@ -420,12 +420,15 @@ async def extract_spotify_playlist_or_album(
                                 a.get("name", "") for a in tr.get("artists", []) if a.get("name")
                             )
                             dur_sec = int((tr.get("duration_ms") or 0) / 1000)
+                            album_imgs = tr.get("album", {}).get("images", []) if kind == "playlist" else data.get("images", [])
+                            cover_url = album_imgs[0].get("url") if album_imgs else None
                             tracks.append(
                                 {
                                     "title": f"{t_name} - {t_artists}" if t_artists else t_name,
                                     "artist": t_artists or "Spotify",
                                     "query": f"{t_name} {t_artists}".strip(),
                                     "duration": dur_sec,
+                                    "thumbnail": cover_url,
                                     "webpage_url": tr.get("external_urls", {}).get(
                                         "spotify", f"https://open.spotify.com/{kind}/{item_id}"
                                     ),
@@ -499,12 +502,15 @@ async def fetch_user_spotify_me_library(access_token: str) -> tuple[str, list[di
                         tr = item.get("track") or {}
                         if tr.get("name"):
                             art = ", ".join(a.get("name", "") for a in tr.get("artists", []))
+                            album_imgs = tr.get("album", {}).get("images", [])
+                            cover_url = album_imgs[0].get("url") if album_imgs else None
                             liked_out.append(
                                 {
                                     "title": f"{tr['name']} - {art}" if art else tr["name"],
                                     "artist": art or "Spotify",
                                     "query": f"{tr['name']} {art}".strip(),
                                     "duration": int((tr.get("duration_ms") or 0) / 1000),
+                                    "thumbnail": cover_url,
                                     "webpage_url": tr.get("external_urls", {}).get("spotify", ""),
                                 }
                             )
@@ -755,14 +761,14 @@ def _score_track_candidate(
 
 async def resolve_track_metadata_deezer(query: str) -> Optional[dict]:
     """
-    Busca metadatos oficiales en Deezer (título exacto, artista oficial y duración en segundos).
+    Busca metadatos oficiales en Deezer (título exacto, artista oficial, duración en segundos y carátula oficial de estudio).
     """
     cleaned = clean_user_query(query)
     q_encoded = urllib.parse.quote(cleaned)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://api.deezer.com/search?q={q_encoded}&limit=3", timeout=6
+                f"https://api.deezer.com/search?q={q_encoded}&limit=5", timeout=6
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -770,12 +776,21 @@ async def resolve_track_metadata_deezer(query: str) -> Optional[dict]:
                         t_name = (item.get("title") or "").strip()
                         art_name = (item.get("artist", {}).get("name") or "").strip()
                         dur = int(item.get("duration") or 0)
+                        album = item.get("album", {}) or {}
+                        cover = (
+                            album.get("cover_xl")
+                            or album.get("cover_big")
+                            or album.get("cover_medium")
+                            or item.get("artist", {}).get("picture_xl")
+                            or item.get("artist", {}).get("picture_big")
+                        )
                         if t_name and dur > 35:
                             return {
                                 "title": t_name,
                                 "artist": art_name,
                                 "duration": dur,
                                 "query": f"{art_name} - {t_name}",
+                                "thumbnail": cover,
                             }
     except Exception:
         pass
@@ -991,12 +1006,14 @@ async def search_song(query: str, requester: str, expected_duration: int = 0) ->
     Busca cualquier canción o concierto asegurando que SIEMPRE sea la pista completa.
     Soporta links directos de YouTube, YouTube Music, Spotify y búsquedas por texto.
     Garantiza versiones oficiales y elimina covers mediante metadatos de estudio y scoring.
+    Prioriza carátulas oficiales de estudio (Deezer / Spotify) sobre miniaturas de YouTube.
     """
     raw_q = query.strip()
     cleaned_q = clean_user_query(raw_q)
     search_text = cleaned_q
     expected_artist = ""
     official_title = ""
+    official_thumbnail = None
 
     if raw_q.startswith(("http://", "https://")):
         if "open.spotify.com" in raw_q:
@@ -1006,28 +1023,47 @@ async def search_song(query: str, requester: str, expected_duration: int = 0) ->
         else:
             # Conservar URL directa de YouTube / SoundCloud para extraer el video/concierto exacto
             search_text = raw_q
-    elif expected_duration == 0 and not _is_concert_query(cleaned_q):
-        # Resolver metadatos de estudio (Deezer) para forzar artista oficial, título y duración exacta
+
+    # Para cualquier búsqueda que no sea un concierto explícito, resolver carátula oficial y metadatos de estudio en Deezer
+    if not _is_concert_query(cleaned_q) and not raw_q.startswith(("http://", "https://")):
         meta = await resolve_track_metadata_deezer(cleaned_q)
         if meta:
-            expected_duration = meta["duration"]
+            if expected_duration == 0:
+                expected_duration = meta["duration"]
             search_text = meta["query"]
             expected_artist = meta["artist"]
             official_title = meta["title"]
+            official_thumbnail = meta.get("thumbnail")
         else:
             search_text = cleaned_q
+    elif "open.spotify.com" in raw_q and not _is_concert_query(search_text):
+        meta = await resolve_track_metadata_deezer(search_text)
+        if meta:
+            if expected_duration == 0:
+                expected_duration = meta["duration"]
+            official_thumbnail = meta.get("thumbnail")
+            expected_artist = meta.get("artist") or expected_artist
+            official_title = meta.get("title") or official_title
 
     loop = asyncio.get_running_loop()
     info = await loop.run_in_executor(
         None, lambda: _find_full_track_sync(search_text, expected_duration, expected_artist, official_title)
     )
 
+    # Si aún no tenemos carátula oficial y no es un concierto explícito, buscar la carátula oficial con los datos del track
+    if not official_thumbnail and not _is_concert_query(cleaned_q) and not _is_concert_query(info.get("title", "")):
+        cand_artist = expected_artist or info.get("uploader") or ""
+        cand_title = official_title or info.get("title") or search_text
+        meta_retry = await resolve_track_metadata_deezer(f"{cand_artist} {cand_title}".strip())
+        if meta_retry and meta_retry.get("thumbnail"):
+            official_thumbnail = meta_retry["thumbnail"]
+
     return Song(
         title=official_title or info.get("title", search_text),
         url=info["url"],
         webpage_url=info.get("webpage_url", raw_q if raw_q.startswith("http") else "https://www.youtube.com"),
         duration=int(info.get("duration") or expected_duration or 0),
-        thumbnail=info.get("thumbnail"),
+        thumbnail=official_thumbnail or info.get("thumbnail"),
         uploader=expected_artist or info.get("uploader", "Artista"),
         requester=requester,
         search_query=search_text,
@@ -1046,7 +1082,7 @@ async def ensure_song_ready_for_playback(song: Song, guild_id: int, slot: str = 
         song.url = resolved.url
         if resolved.title and (not song.title or song.title.startswith("http")):
             song.title = resolved.title
-        if not song.thumbnail and resolved.thumbnail:
+        if not song.thumbnail or (resolved.thumbnail and "dzcdn.net" in resolved.thumbnail):
             song.thumbnail = resolved.thumbnail
         if not song.duration and resolved.duration:
             song.duration = resolved.duration
@@ -2650,7 +2686,7 @@ class PenguPixelBot(commands.Bot):
                 url="",
                 webpage_url=t.get("webpage_url", "https://open.spotify.com"),
                 duration=int(t.get("duration") or 0),
-                thumbnail=None,
+                thumbnail=t.get("thumbnail"),
                 uploader=t.get("artist", "Spotify / YT Music"),
                 requester=interaction.user.mention,
                 search_query=t.get("query") or t.get("title", ""),
