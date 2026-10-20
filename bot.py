@@ -106,7 +106,7 @@ YTDL_FLAT_OPTIONS = {
     "nocheckcertificate": True,
     "extractor_args": {
         "youtube": {
-            "player_client": ["android", "ios", "mweb", "web"]
+            "player_client": ["android", "ios"]
         }
     },
 }
@@ -123,7 +123,7 @@ YTDL_FULL_OPTIONS = {
     "extract_flat": False,
     "extractor_args": {
         "youtube": {
-            "player_client": ["android", "ios", "mweb", "web"]
+            "player_client": ["android", "ios"]
         }
     },
 }
@@ -642,7 +642,8 @@ UNWANTED_VARIANTS_BLACKLIST = (
     "sped up", "speed up", "slowed", "reverb", "nightcore",
     "daycore", "bass boosted", "8d audio", "acoustic cover",
     "guitar cover", "piano cover", "vocal cover", "guitar lesson",
-    "drum cover", "bass cover", "tutorial"
+    "drum cover", "bass cover", "tutorial", "remix", "rmx",
+    "mashup", "edit", "flip"
 )
 
 def clean_user_query(q: str) -> str:
@@ -671,11 +672,26 @@ def _is_unwanted_track(title: str, uploader: str, user_query: str) -> bool:
             return True
     return False
 
+def _matches_expected_title(candidate_title: str, expected_title: str) -> bool:
+    """Verifica que el título candidato contenga la canción solicitada."""
+    if not expected_title:
+        return True
+    c_clean = re.sub(r"[^\w\s]", " ", candidate_title.lower())
+    exp_clean = re.sub(r"[^\w\s]", " ", expected_title.lower())
+    stopwords = {"de", "del", "la", "el", "los", "las", "un", "una", "y", "en", "the", "a", "an", "and", "or", "of", "to", "por"}
+    exp_words = [w for w in exp_clean.split() if w not in stopwords and len(w) >= 3]
+    if not exp_words:
+        return True
+    c_words = set(c_clean.split())
+    return any(w in c_words or any(w in cw for cw in c_words) for w in exp_words)
+
+
 def _score_track_candidate(
     entry: dict,
     user_query: str,
     expected_duration: int = 0,
     expected_artist: str = "",
+    expected_title: str = "",
 ) -> float:
     title = (entry.get("title") or "").strip()
     uploader = (entry.get("uploader") or "").strip()
@@ -685,6 +701,13 @@ def _score_track_candidate(
     is_concert = _is_concert_query(user_query)
 
     score = 100.0
+
+    # Coincidencia obligatoria del título de la canción
+    if expected_title:
+        if _matches_expected_title(title, expected_title):
+            score += 100.0
+        else:
+            score -= 600.0
 
     # 1. Pistas de canales oficiales de YouTube Music (Topic channels) son la versión de estudio perfecta
     if channel.endswith("- topic"):
@@ -709,18 +732,18 @@ def _score_track_candidate(
     # 4. Ajuste por duración (si tenemos expected_duration > 0 de Spotify/Deezer)
     if expected_duration > 0 and not is_concert and dur > 0:
         diff = abs(dur - expected_duration)
-        if diff <= 3:
+        if diff <= 4:
             score += 70.0
-        elif diff <= 8:
+        elif diff <= 10:
             score += 40.0
-        elif diff <= 20:
-            score += 10.0
+        elif diff <= 25:
+            score += 15.0
         elif diff > 60:
             score -= 60.0
 
     # 5. Penalizaciones
     if any(k in t_low for k in ("lyrics", "letra", "sub español", "sub esp", "sub.")):
-        score -= 30.0
+        score -= 20.0
 
     if dur > 0 and dur <= 35.0 and not is_concert:
         score -= 300.0
@@ -793,10 +816,11 @@ def _find_full_track_sync(
     query_or_url: str,
     expected_duration: int = 0,
     expected_artist: str = "",
+    expected_title: str = "",
 ) -> dict:
     """
     Busca una pista o concierto COMPLETO en YouTube y SoundCloud (descartando previews de 30s).
-    Aplica filtro estricto anti-covers y scoring de canales oficiales para garantizar la versión original.
+    Aplica validación estricta de título, filtro anti-covers y scoring de audio oficial.
     """
     q_str = query_or_url.strip()
     is_direct_url = q_str.startswith(("http://", "https://")) and "open.spotify.com" not in q_str
@@ -817,53 +841,68 @@ def _find_full_track_sync(
         except Exception:
             pass
 
-    # 1. Buscar primero en YouTube con ranking oficial y filtro anti-covers
-    try:
-        yt_res = ytdl_full.extract_info(f"ytsearch10:{q_str}", download=False)
-        raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
-        if raw_entries:
-            valid_entries = []
-            for e in raw_entries:
-                title = e.get("title") or ""
-                uploader = e.get("uploader") or ""
-                # Descartar si es un cover o variante no solicitada
-                if _is_unwanted_track(title, uploader, q_str):
-                    continue
-                score = _score_track_candidate(
-                    e,
-                    q_str,
-                    expected_duration=expected_duration,
-                    expected_artist=expected_artist,
-                )
-                valid_entries.append((score, e))
+    # 1. Búsqueda en YouTube con variantes limpias
+    yt_queries = [q_str]
+    if expected_title and expected_artist:
+        alt1 = f"{expected_title} {expected_artist}"
+        if alt1.lower() not in [q.lower() for q in yt_queries]:
+            yt_queries.append(alt1)
+        alt2 = f"{expected_artist} {expected_title}"
+        if alt2.lower() not in [q.lower() for q in yt_queries]:
+            yt_queries.append(alt2)
 
-            # Si todos fueron descartados por filtro (caso extremo), usar candidatos sin penalización mortal
-            if not valid_entries:
+    for yt_q in yt_queries:
+        try:
+            yt_res = ytdl_full.extract_info(f"ytsearch10:{yt_q}", download=False)
+            raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
+            if raw_entries:
+                valid_entries = []
                 for e in raw_entries:
-                    valid_entries.append((0.0, e))
+                    title = e.get("title") or ""
+                    uploader = e.get("uploader") or ""
+                    # Descartar si es un cover o variante no solicitada
+                    if _is_unwanted_track(title, uploader, q_str):
+                        continue
+                    # Descartar si el título de YouTube no coincide con la canción solicitada
+                    if expected_title and not _matches_expected_title(title, expected_title):
+                        continue
+                    score = _score_track_candidate(
+                        e,
+                        yt_q,
+                        expected_duration=expected_duration,
+                        expected_artist=expected_artist,
+                        expected_title=expected_title,
+                    )
+                    valid_entries.append((score, e))
 
-            valid_entries.sort(key=lambda x: x[0], reverse=True)
-            winner = valid_entries[0][1]
+                if valid_entries:
+                    valid_entries.sort(key=lambda x: x[0], reverse=True)
+                    # Intentar extraer stream playable de los mejores candidatos que coinciden
+                    for _, cand in valid_entries[:4]:
+                        if cand.get("url"):
+                            return cand
+                        win_url = cand.get("webpage_url") or f"https://www.youtube.com/watch?v={cand.get('id')}"
+                        try:
+                            full_win = ytdl_full.extract_info(win_url, download=False)
+                            if full_win:
+                                if "entries" in full_win:
+                                    f_entries = [fe for fe in full_win["entries"] if fe]
+                                    full_win = f_entries[0] if f_entries else full_win
+                                if full_win.get("url"):
+                                    return full_win
+                        except Exception:
+                            continue
+        except Exception as yt_err:
+            print(f"[YouTube Search Aviso] Falló intento '{yt_q}': {yt_err}", flush=True)
 
-            # Si el entry ganador aún no tiene la URL del stream directo, extraerla de su webpage_url
-            if not winner.get("url"):
-                win_url = winner.get("webpage_url") or f"https://www.youtube.com/watch?v={winner.get('id')}"
-                try:
-                    full_win = ytdl_full.extract_info(win_url, download=False)
-                    if full_win:
-                        if "entries" in full_win:
-                            f_entries = [fe for fe in full_win["entries"] if fe]
-                            full_win = f_entries[0] if f_entries else full_win
-                        if full_win.get("url"):
-                            return full_win
-                except Exception:
-                    pass
-            return winner
-    except Exception:
-        pass
+    # 2. Respaldo en SoundCloud (descartando previews de 30s, covers y canciones no coincidentes)
+    sc_queries = _build_search_queries(q_str)
+    if expected_title and expected_artist:
+        sc_alt = f"{expected_artist} {expected_title}"
+        if sc_alt.lower() not in [q.lower() for q in sc_queries]:
+            sc_queries.insert(0, sc_alt)
 
-    # 2. Respaldo en SoundCloud (descartando previews de 30s y covers no solicitados)
-    for q_try in _build_search_queries(q_str):
+    for q_try in sc_queries:
         try:
             flat_res = ytdl_flat.extract_info(f"scsearch8:{q_try}", download=False)
             entries = [e for e in (flat_res or {}).get("entries", []) if e]
@@ -873,10 +912,12 @@ def _find_full_track_sync(
                 dur = float(e.get("duration") or 0)
                 if dur <= 35.0:
                     continue
-                # Filtro anti-cover en SoundCloud
                 t = e.get("title") or ""
                 up = e.get("uploader") or ""
                 if _is_unwanted_track(t, up, q_str):
+                    continue
+                # VALIDACIÓN ESTRICTA: El tema de SoundCloud DEBE coincidir con el título pedido
+                if expected_title and not _matches_expected_title(t, expected_title):
                     continue
                 valid_candidates.append(e)
 
@@ -901,7 +942,7 @@ def _find_full_track_sync(
         except Exception:
             continue
 
-    raise ValueError(f"No se encontró versión completa para '{query_or_url}'")
+    raise ValueError(f"No se encontró versión completa oficial para '{query_or_url}'")
 
 
 def _download_stream_to_local_file_sync(
@@ -978,7 +1019,7 @@ async def search_song(query: str, requester: str, expected_duration: int = 0) ->
 
     loop = asyncio.get_running_loop()
     info = await loop.run_in_executor(
-        None, lambda: _find_full_track_sync(search_text, expected_duration, expected_artist)
+        None, lambda: _find_full_track_sync(search_text, expected_duration, expected_artist, official_title)
     )
 
     return Song(

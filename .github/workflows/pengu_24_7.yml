@@ -31,6 +31,7 @@ jobs:
       - name: Install Audio & Discord Dependencies
         run: |
           sudo apt-get update -y && sudo apt-get install -y ffmpeg libffi-dev libnacl-dev libopus0 libopus-dev
+          pip install --upgrade pip yt-dlp
           pip install -r requirements.txt
 
       - name: Run Pengu DJ 24/7 (Auto-restarts every 5h)
