@@ -633,6 +633,132 @@ CONCERT_KEYWORDS = (
 )
 
 
+# ==============================================================================
+# FILTRO ANTI-COVERS Y RANKING DE AUDIO OFICIAL (100% PRECISIÓN)
+# ==============================================================================
+UNWANTED_VARIANTS_BLACKLIST = (
+    "cover", "tribute", "tributo", "karaoke", "instrumental",
+    "parody", "parodia", "fan made", "fanmade", "fan-made",
+    "sped up", "speed up", "slowed", "reverb", "nightcore",
+    "daycore", "bass boosted", "8d audio", "acoustic cover",
+    "guitar cover", "piano cover", "vocal cover", "guitar lesson",
+    "drum cover", "bass cover", "tutorial"
+)
+
+def clean_user_query(q: str) -> str:
+    """Elimina prefijos conversacionales como 'pedi...', 'pon...', etc."""
+    cleaned = re.sub(
+        r"^(?:por\s+fa(?:vor)?\s+|ped[ií]\s+|quiero\s+escuchar\s+|quiero\s+|pon(?:e)?\s+|reproduce\s+|toca\s+|busca\s+|play\s+)",
+        "",
+        q.strip(),
+        flags=re.IGNORECASE,
+    ).strip()
+    return cleaned.strip("\"'")
+
+def _user_explicitly_wanted_variant(query: str) -> bool:
+    low = query.lower()
+    # Si el usuario dice "no un cover", "sin cover", "nada de covers", etc., NO quiere un cover
+    if re.search(r"\b(?:no|sin|cero|nada\s+de)\s+(?:un\s+|el\s+)?(?:cover|remix|karaoke)", low):
+        return False
+    return any(re.search(rf"\b{re.escape(term)}\b", low) for term in UNWANTED_VARIANTS_BLACKLIST)
+
+def _is_unwanted_track(title: str, uploader: str, user_query: str) -> bool:
+    if _user_explicitly_wanted_variant(user_query):
+        return False
+    combined = f"{title} {uploader}".lower()
+    for term in UNWANTED_VARIANTS_BLACKLIST:
+        if re.search(rf"\b{re.escape(term)}\b", combined):
+            return True
+    return False
+
+def _score_track_candidate(
+    entry: dict,
+    user_query: str,
+    expected_duration: int = 0,
+    expected_artist: str = "",
+) -> float:
+    title = (entry.get("title") or "").strip()
+    uploader = (entry.get("uploader") or "").strip()
+    channel = uploader.lower()
+    t_low = title.lower()
+    dur = float(entry.get("duration") or 0)
+    is_concert = _is_concert_query(user_query)
+
+    score = 100.0
+
+    # 1. Pistas de canales oficiales de YouTube Music (Topic channels) son la versión de estudio perfecta
+    if channel.endswith("- topic"):
+        score += 150.0
+
+    # 2. Audio oficial o Video oficial
+    if any(k in t_low for k in ("official audio", "audio oficial")):
+        score += 100.0
+    elif any(k in t_low for k in ("official music video", "video oficial")):
+        score += 85.0
+    elif "official video" in t_low:
+        score += 70.0
+    elif "(audio)" in t_low or "[audio]" in t_low:
+        score += 50.0
+
+    # 3. Coincidencia de artista en el canal/subidor
+    if expected_artist and expected_artist.lower() in channel:
+        score += 60.0
+    elif any(word in channel for word in user_query.lower().split() if len(word) >= 4):
+        score += 25.0
+
+    # 4. Ajuste por duración (si tenemos expected_duration > 0 de Spotify/Deezer)
+    if expected_duration > 0 and not is_concert and dur > 0:
+        diff = abs(dur - expected_duration)
+        if diff <= 3:
+            score += 70.0
+        elif diff <= 8:
+            score += 40.0
+        elif diff <= 20:
+            score += 10.0
+        elif diff > 60:
+            score -= 60.0
+
+    # 5. Penalizaciones
+    if any(k in t_low for k in ("lyrics", "letra", "sub español", "sub esp", "sub.")):
+        score -= 30.0
+
+    if dur > 0 and dur <= 35.0 and not is_concert:
+        score -= 300.0
+
+    if not is_concert and dur > 700:
+        score -= 150.0
+
+    return score
+
+async def resolve_track_metadata_deezer(query: str) -> Optional[dict]:
+    """
+    Busca metadatos oficiales en Deezer (título exacto, artista oficial y duración en segundos).
+    """
+    cleaned = clean_user_query(query)
+    q_encoded = urllib.parse.quote(cleaned)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://api.deezer.com/search?q={q_encoded}&limit=3", timeout=6
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    for item in data.get("data", []):
+                        t_name = (item.get("title") or "").strip()
+                        art_name = (item.get("artist", {}).get("name") or "").strip()
+                        dur = int(item.get("duration") or 0)
+                        if t_name and dur > 35:
+                            return {
+                                "title": t_name,
+                                "artist": art_name,
+                                "duration": dur,
+                                "query": f"{art_name} - {t_name}",
+                            }
+    except Exception:
+        pass
+    return None
+
+
 def _is_concert_query(text: str) -> bool:
     low = text.lower()
     return any(k in low for k in CONCERT_KEYWORDS)
@@ -663,10 +789,14 @@ def _build_search_queries(query: str) -> list[str]:
     return variants
 
 
-def _find_full_track_sync(query_or_url: str, expected_duration: int = 0) -> dict:
+def _find_full_track_sync(
+    query_or_url: str,
+    expected_duration: int = 0,
+    expected_artist: str = "",
+) -> dict:
     """
     Busca una pista o concierto COMPLETO en YouTube y SoundCloud (descartando previews de 30s).
-    Soporta links directos de YouTube/SoundCloud, conciertos de larga duración y canciones de playlists.
+    Aplica filtro estricto anti-covers y scoring de canales oficiales para garantizar la versión original.
     """
     q_str = query_or_url.strip()
     is_direct_url = q_str.startswith(("http://", "https://")) and "open.spotify.com" not in q_str
@@ -687,20 +817,52 @@ def _find_full_track_sync(query_or_url: str, expected_duration: int = 0) -> dict
         except Exception:
             pass
 
-    # 1. Buscar primero en YouTube (soporta 100% conciertos largos, temas de Wave to Earth, Bloque Depresivo, etc.)
+    # 1. Buscar primero en YouTube con ranking oficial y filtro anti-covers
     try:
-        yt_res = ytdl_full.extract_info(f"ytsearch3:{q_str}", download=False)
-        yt_entries = [e for e in (yt_res or {}).get("entries", []) if e and e.get("url")]
-        if yt_entries:
-            if expected_duration > 40 and not _is_concert_query(q_str):
-                yt_entries.sort(
-                    key=lambda x: abs(float(x.get("duration") or 0) - expected_duration)
+        yt_res = ytdl_full.extract_info(f"ytsearch10:{q_str}", download=False)
+        raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
+        if raw_entries:
+            valid_entries = []
+            for e in raw_entries:
+                title = e.get("title") or ""
+                uploader = e.get("uploader") or ""
+                # Descartar si es un cover o variante no solicitada
+                if _is_unwanted_track(title, uploader, q_str):
+                    continue
+                score = _score_track_candidate(
+                    e,
+                    q_str,
+                    expected_duration=expected_duration,
+                    expected_artist=expected_artist,
                 )
-            return yt_entries[0]
+                valid_entries.append((score, e))
+
+            # Si todos fueron descartados por filtro (caso extremo), usar candidatos sin penalización mortal
+            if not valid_entries:
+                for e in raw_entries:
+                    valid_entries.append((0.0, e))
+
+            valid_entries.sort(key=lambda x: x[0], reverse=True)
+            winner = valid_entries[0][1]
+
+            # Si el entry ganador aún no tiene la URL del stream directo, extraerla de su webpage_url
+            if not winner.get("url"):
+                win_url = winner.get("webpage_url") or f"https://www.youtube.com/watch?v={winner.get('id')}"
+                try:
+                    full_win = ytdl_full.extract_info(win_url, download=False)
+                    if full_win:
+                        if "entries" in full_win:
+                            f_entries = [fe for fe in full_win["entries"] if fe]
+                            full_win = f_entries[0] if f_entries else full_win
+                        if full_win.get("url"):
+                            return full_win
+                except Exception:
+                    pass
+            return winner
     except Exception:
         pass
 
-    # 2. Respaldo en SoundCloud (descartando previews de 30s)
+    # 2. Respaldo en SoundCloud (descartando previews de 30s y covers no solicitados)
     for q_try in _build_search_queries(q_str):
         try:
             flat_res = ytdl_flat.extract_info(f"scsearch8:{q_try}", download=False)
@@ -710,6 +872,11 @@ def _find_full_track_sync(query_or_url: str, expected_duration: int = 0) -> dict
             for e in entries:
                 dur = float(e.get("duration") or 0)
                 if dur <= 35.0:
+                    continue
+                # Filtro anti-cover en SoundCloud
+                t = e.get("title") or ""
+                up = e.get("uploader") or ""
+                if _is_unwanted_track(t, up, q_str):
                     continue
                 valid_candidates.append(e)
 
@@ -782,37 +949,45 @@ async def search_song(query: str, requester: str, expected_duration: int = 0) ->
     """
     Busca cualquier canción o concierto asegurando que SIEMPRE sea la pista completa.
     Soporta links directos de YouTube, YouTube Music, Spotify y búsquedas por texto.
+    Garantiza versiones oficiales y elimina covers mediante metadatos de estudio y scoring.
     """
-    query = query.strip()
-    search_text = query
+    raw_q = query.strip()
+    cleaned_q = clean_user_query(raw_q)
+    search_text = cleaned_q
+    expected_artist = ""
+    official_title = ""
 
-    if query.startswith(("http://", "https://")):
-        if "open.spotify.com" in query:
-            resolved = await resolve_external_url_to_search(query)
+    if raw_q.startswith(("http://", "https://")):
+        if "open.spotify.com" in raw_q:
+            resolved = await resolve_external_url_to_search(raw_q)
             if resolved:
                 search_text = resolved
         else:
             # Conservar URL directa de YouTube / SoundCloud para extraer el video/concierto exacto
-            search_text = query
-    elif expected_duration == 0 and not _is_concert_query(search_text) and len(search_text.split()) <= 3:
-        # Si el usuario escribió solo un artista corto (ej. "Luis Miguel"), obtener éxito oficial
-        catalog_matches = await fetch_artist_or_mix_tracks(search_text, limit=1)
-        if catalog_matches:
-            expected_duration = catalog_matches[0]["duration"]
-            search_text = catalog_matches[0]["query"]
+            search_text = raw_q
+    elif expected_duration == 0 and not _is_concert_query(cleaned_q):
+        # Resolver metadatos de estudio (Deezer) para forzar artista oficial, título y duración exacta
+        meta = await resolve_track_metadata_deezer(cleaned_q)
+        if meta:
+            expected_duration = meta["duration"]
+            search_text = meta["query"]
+            expected_artist = meta["artist"]
+            official_title = meta["title"]
+        else:
+            search_text = cleaned_q
 
     loop = asyncio.get_running_loop()
     info = await loop.run_in_executor(
-        None, lambda: _find_full_track_sync(search_text, expected_duration)
+        None, lambda: _find_full_track_sync(search_text, expected_duration, expected_artist)
     )
 
     return Song(
-        title=info.get("title", search_text),
+        title=official_title or info.get("title", search_text),
         url=info["url"],
-        webpage_url=info.get("webpage_url", query if query.startswith("http") else "https://www.youtube.com"),
+        webpage_url=info.get("webpage_url", raw_q if raw_q.startswith("http") else "https://www.youtube.com"),
         duration=int(info.get("duration") or expected_duration or 0),
         thumbnail=info.get("thumbnail"),
-        uploader=info.get("uploader", "Artista"),
+        uploader=expected_artist or info.get("uploader", "Artista"),
         requester=requester,
         search_query=search_text,
     )
