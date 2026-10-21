@@ -9,7 +9,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 concurrency:
   group: pengu-dj-live-instance
@@ -37,6 +37,8 @@ jobs:
       - name: Run Pengu DJ 24/7 (Auto-restarts every 5h)
         timeout-minutes: 330
         continue-on-error: true
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: python -u bot.py
 
       - name: Auto-Relaunch Next Cloud Cycle

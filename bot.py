@@ -3048,15 +3048,9 @@ def register_commands(target_bot: PenguPixelBot):
 
 
 def start_bot():
-    enc = [
-        23, 14, 15, 104, 23, 14, 31, 111, 23, 32, 31, 106, 23, 48, 19, 107,
-        20, 48, 49, 35, 20, 48, 57, 111, 23, 61, 116, 29, 62, 20, 46, 48,
-        29, 116, 10, 22, 56, 2, 31, 35, 20, 48, 110, 28, 3, 32, 28, 48,
-        23, 55, 8, 46, 20, 5, 22, 3, 30, 12, 105, 110, 110, 59, 24, 48,
-        12, 47, 45, 108, 35, 29, 107, 45
-    ]
-    default_token = bytes([x ^ 0x5A for x in enc]).decode("ascii")
-    token = os.getenv("DISCORD_TOKEN", "").strip() or default_token
+    token = os.getenv("DISCORD_TOKEN", "").strip()
+    if not token:
+        raise ValueError("DISCORD_TOKEN no configurado en variables de entorno o archivo .env")
     bot = PenguPixelBot(use_privileged_intents=False)
     register_commands(bot)
     bot.run(token)
