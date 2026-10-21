@@ -7,7 +7,7 @@
       "client_secret": "",
       "access_token": "",
       "profile_url": "https://open.spotify.com/playlist/1WElVWvPshGlUnNrCxfkVL",
-      "account_name": "Playlists Activas"
+      "account_name": "Mix: Asi Fue Isabel Pantoja"
     },
     "ytmusic": {
       "connected": true,
@@ -16,7 +16,8 @@
       "account_name": "Conciertos & Mixes"
     },
     "tastes": [
-      "macha y el bloque depresivo"
+      "macha y el bloque depresivo",
+      "ASI FUE ISABEL PANTOJA"
     ],
     "liked_songs": [],
     "playlists": [
@@ -796,7 +797,139 @@
             "webpage_url": "https://www.deezer.com/track/3452311211"
           }
         ]
+      },
+      {
+        "name": "💚 Mix: Asi Fue Isabel Pantoja",
+        "source": "spotify",
+        "url": "search:ASI FUE ISABEL PANTOJA",
+        "tracks": [
+          {
+            "title": "Asi Fue - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Asi Fue Isabel Pantoja",
+            "duration": 325,
+            "webpage_url": "https://www.deezer.com/track/14062749"
+          },
+          {
+            "title": "Así Fue - Juan Gabriel",
+            "artist": "Juan Gabriel",
+            "query": "Así Fue Juan Gabriel",
+            "duration": 392,
+            "webpage_url": "https://www.deezer.com/track/3725856782"
+          },
+          {
+            "title": "Ese Bolero - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Ese Bolero Isabel Pantoja",
+            "duration": 279,
+            "webpage_url": "https://www.deezer.com/track/671482092"
+          },
+          {
+            "title": "Os Canta Isabel Pantoja - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Os Canta Isabel Pantoja Isabel Pantoja",
+            "duration": 199,
+            "webpage_url": "https://www.deezer.com/track/90666875"
+          },
+          {
+            "title": "Un Hombre - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Un Hombre Isabel Pantoja",
+            "duration": 193,
+            "webpage_url": "https://www.deezer.com/track/920637"
+          },
+          {
+            "title": "Embrujá por Tu Querer - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Embrujá por Tu Querer Isabel Pantoja",
+            "duration": 173,
+            "webpage_url": "https://www.deezer.com/track/3260238921"
+          },
+          {
+            "title": "Veneno - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Veneno Isabel Pantoja",
+            "duration": 207,
+            "webpage_url": "https://www.deezer.com/track/671482122"
+          },
+          {
+            "title": "Yemanya - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Yemanya Isabel Pantoja",
+            "duration": 253,
+            "webpage_url": "https://www.deezer.com/track/1095724"
+          },
+          {
+            "title": "No Es Todo Rosa - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "No Es Todo Rosa Isabel Pantoja",
+            "duration": 224,
+            "webpage_url": "https://www.deezer.com/track/671482152"
+          },
+          {
+            "title": "Eres una Mentira - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Eres una Mentira Isabel Pantoja",
+            "duration": 251,
+            "webpage_url": "https://www.deezer.com/track/91114177"
+          },
+          {
+            "title": "Amor Eterno - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Amor Eterno Isabel Pantoja",
+            "duration": 265,
+            "webpage_url": "https://www.deezer.com/track/920654"
+          },
+          {
+            "title": "Abrázame Muy Fuerte - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Abrázame Muy Fuerte Isabel Pantoja",
+            "duration": 269,
+            "webpage_url": "https://www.deezer.com/track/135875916"
+          },
+          {
+            "title": "Luna Llena - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Luna Llena Isabel Pantoja",
+            "duration": 245,
+            "webpage_url": "https://www.deezer.com/track/1076247"
+          },
+          {
+            "title": "Pero Vas A Extrañarme - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Pero Vas A Extrañarme Isabel Pantoja",
+            "duration": 192,
+            "webpage_url": "https://www.deezer.com/track/671482102"
+          },
+          {
+            "title": "Hazme Tuya una Vez Mas - Isabel Pantoja",
+            "artist": "Isabel Pantoja",
+            "query": "Hazme Tuya una Vez Mas Isabel Pantoja",
+            "duration": 367,
+            "webpage_url": "https://www.deezer.com/track/1076231"
+          }
+        ]
       }
     ]
+  },
+  "1267649663394119715": {
+    "display_name": "Thomasito112",
+    "spotify": {
+      "connected": false,
+      "client_id": "",
+      "client_secret": "",
+      "access_token": "",
+      "profile_url": "",
+      "account_name": ""
+    },
+    "ytmusic": {
+      "connected": false,
+      "api_key_or_token": "",
+      "channel_or_playlist_url": "",
+      "account_name": ""
+    },
+    "tastes": [],
+    "liked_songs": [],
+    "playlists": []
   }
 }
