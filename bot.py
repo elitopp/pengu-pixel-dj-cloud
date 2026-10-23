@@ -104,6 +104,11 @@ YTDL_FLAT_OPTIONS = {
     "no_warnings": True,
     "extract_flat": True,
     "nocheckcertificate": True,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["tv_downgraded", "android", "ios"]
+        }
+    },
 }
 
 YTDL_FULL_OPTIONS = {
@@ -117,7 +122,7 @@ YTDL_FULL_OPTIONS = {
     "extract_flat": False,
     "extractor_args": {
         "youtube": {
-            "player_client": ["android", "ios", "mweb", "web"]
+            "player_client": ["tv_downgraded", "tv", "android_vr", "android", "ios"]
         }
     },
 }
@@ -637,11 +642,14 @@ def _find_full_track_sync(
             yt_queries.append(q_str)
 
     scored_candidates = []
+    last_raw_entries = []
 
     for yt_q in yt_queries:
         try:
             yt_res = ytdl_flat.extract_info(f"ytsearch10:{yt_q}", download=False)
             raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
+            if raw_entries:
+                last_raw_entries = raw_entries
             found_master = False
             for e in raw_entries:
                 title = e.get("title") or ""
@@ -665,6 +673,14 @@ def _find_full_track_sync(
                 break
         except Exception as yt_err:
             print(f"[YouTube Search Aviso] Falló intento '{yt_q}': {yt_err}", flush=True)
+
+    # Si por filtros muy rigurosos ningún candidato superó 0 puntos pero hay resultados reales:
+    if not scored_candidates and last_raw_entries:
+        for e in last_raw_entries:
+            dur = float(e.get("duration") or 0)
+            if not is_concert_req and (0 < dur < 30 or dur > 900):
+                continue
+            scored_candidates.append((50.0, e))
 
     if scored_candidates:
         # Ordenar los candidatos por mayor puntuación oficial (primero canales oficiales y de discográfica)
