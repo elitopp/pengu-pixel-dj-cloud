@@ -127,6 +127,11 @@ YTDL_FULL_OPTIONS = {
     },
 }
 
+COOKIE_FILE = BASE_DIR / "cookies.txt"
+if COOKIE_FILE.exists() and COOKIE_FILE.stat().st_size > 50:
+    YTDL_FLAT_OPTIONS["cookiefile"] = str(COOKIE_FILE)
+    YTDL_FULL_OPTIONS["cookiefile"] = str(COOKIE_FILE)
+
 ytdl_flat = yt_dlp.YoutubeDL(YTDL_FLAT_OPTIONS)
 ytdl_full = yt_dlp.YoutubeDL(YTDL_FULL_OPTIONS)
 

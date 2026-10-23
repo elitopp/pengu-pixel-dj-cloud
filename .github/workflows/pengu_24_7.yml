@@ -39,7 +39,13 @@ jobs:
         continue-on-error: true
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        run: python -u bot.py
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then
+            echo "$YT_COOKIES" > cookies.txt
+            echo "✅ YouTube Cookies cargadas correctamente en la nube."
+          fi
+          python -u bot.py
 
       - name: Auto-Relaunch Next Cloud Cycle
         if: always()
