@@ -104,26 +104,20 @@ YTDL_FLAT_OPTIONS = {
     "no_warnings": True,
     "extract_flat": True,
     "nocheckcertificate": True,
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["android", "ios"]
-        }
-    },
 }
 
 YTDL_FULL_OPTIONS = {
     "format": "bestaudio/best",
     "noplaylist": True,
     "nocheckcertificate": True,
-    "ignoreerrors": False,
+    "ignoreerrors": True,
     "logtostderr": False,
     "quiet": True,
     "no_warnings": True,
-    "default_search": "ytsearch",
     "extract_flat": False,
     "extractor_args": {
         "youtube": {
-            "player_client": ["android", "ios"]
+            "player_client": ["android", "ios", "mweb", "web"]
         }
     },
 }
@@ -642,13 +636,13 @@ def _find_full_track_sync(
             yt_queries.append(f"{q_str} official music video")
             yt_queries.append(q_str)
 
-    best_cand = None
-    best_score = -9999.0
+    scored_candidates = []
 
     for yt_q in yt_queries:
         try:
-            yt_res = ytdl_full.extract_info(f"ytsearch10:{yt_q}", download=False)
+            yt_res = ytdl_flat.extract_info(f"ytsearch10:{yt_q}", download=False)
             raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
+            found_master = False
             for e in raw_entries:
                 title = e.get("title") or ""
                 uploader = e.get("uploader") or e.get("channel") or ""
@@ -661,31 +655,36 @@ def _find_full_track_sync(
                     expected_duration=expected_duration,
                     is_concert=is_concert_req,
                 )
-                if score > best_score:
-                    best_score = score
-                    best_cand = e
+                if score > 0:
+                    scored_candidates.append((score, e))
+                if score >= 4000.0:
+                    found_master = True
 
-            # Si encontramos el master de estudio (- Topic o canal oficial con audio de estudio), terminar de inmediato
-            if best_score >= 4000.0:
+            # Si encontramos masters de estudio de altísima puntuación en esta consulta, no saturar con más búsquedas
+            if found_master:
                 break
         except Exception as yt_err:
             print(f"[YouTube Search Aviso] Falló intento '{yt_q}': {yt_err}", flush=True)
 
-    if best_cand:
-        if best_cand.get("url"):
-            return best_cand
-        win_url = best_cand.get("webpage_url") or f"https://www.youtube.com/watch?v={best_cand.get('id')}"
-        try:
-            full_win = ytdl_full.extract_info(win_url, download=False)
-            if full_win:
-                if "entries" in full_win:
-                    f_entries = [fe for fe in full_win["entries"] if fe]
-                    full_win = f_entries[0] if f_entries else full_win
-                if full_win.get("url"):
-                    return full_win
-        except Exception:
-            pass
-        return best_cand
+    if scored_candidates:
+        # Ordenar los candidatos por mayor puntuación oficial (primero canales oficiales y de discográfica)
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+        # Intentar extraer stream válido de los mejores candidatos hasta que uno responda
+        for score, cand in scored_candidates[:6]:
+            if cand.get("url"):
+                return cand
+            win_url = cand.get("webpage_url") or f"https://www.youtube.com/watch?v={cand.get('id')}"
+            try:
+                full_win = ytdl_full.extract_info(win_url, download=False)
+                if full_win:
+                    if "entries" in full_win:
+                        f_entries = [fe for fe in full_win["entries"] if fe]
+                        full_win = f_entries[0] if f_entries else full_win
+                    if full_win.get("url"):
+                        return full_win
+            except Exception as extract_err:
+                print(f"[YouTube Extract Aviso] Falló candidato '{cand.get('title')}': {extract_err}", flush=True)
+                continue
 
     raise ValueError(f"No se encontró la canción original de estudio en YouTube para '{query_or_url}'")
 
