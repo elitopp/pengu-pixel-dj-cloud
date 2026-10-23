@@ -307,39 +307,11 @@ async def fetch_artist_or_mix_tracks(query: str, limit: int = 12) -> list[dict]:
 
 
 async def resolve_external_url_to_search(url: str) -> Optional[str]:
-    """Convierte links individuales de Spotify o YouTube en 'Título - Artista'."""
+    """Convierte links individuales de YouTube en 'Título - Artista'."""
     try:
+        if "open.spotify.com" in url or "spotify.com" in url:
+            return None
         async with aiohttp.ClientSession() as session:
-            if "open.spotify.com" in url:
-                embed_url = re.sub(
-                    r"open\.spotify\.com/(intl-[a-z-]+/)?(track|album|playlist)/",
-                    r"open.spotify.com/embed/\2/",
-                    url,
-                )
-                async with session.get(embed_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=8) as resp:
-                    if resp.status == 200:
-                        html = await resp.text()
-                        m = re.search(r"__NEXT_DATA__[^>]*>(.*?)</script>", html)
-                        if m:
-                            data = json.loads(m.group(1))
-                            entity = (
-                                data.get("props", {})
-                                .get("pageProps", {})
-                                .get("state", {})
-                                .get("data", {})
-                                .get("entity", {})
-                            )
-                            title = entity.get("title") or entity.get("name") or ""
-                            artist = entity.get("subtitle") or ""
-                            if not artist and entity.get("artists"):
-                                artist = ", ".join(a.get("name", "") for a in entity["artists"])
-                            if title:
-                                return f"{title} {artist}".strip()
-                async with session.get(f"https://open.spotify.com/oembed?url={url}", timeout=8) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        if data.get("title"):
-                            return data["title"]
             if "youtube.com" in url or "youtu.be" in url:
                 async with session.get(f"https://noembed.com/embed?url={url}", timeout=8) as resp:
                     if resp.status == 200:
@@ -354,193 +326,8 @@ async def resolve_external_url_to_search(url: str) -> Optional[str]:
     return None
 
 
-async def fetch_spotify_token(client_id: str, client_secret: str) -> Optional[str]:
-    """Obtiene un token oficial de Spotify Web API usando Client ID y Client Secret del usuario."""
-    try:
-        raw = f"{client_id.strip()}:{client_secret.strip()}".encode("utf-8")
-        b64 = base64.b64encode(raw).decode("ascii")
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://accounts.spotify.com/api/token",
-                headers={
-                    "Authorization": f"Basic {b64}",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                data="grant_type=client_credentials",
-                timeout=10,
-            ) as resp:
-                if resp.status == 200:
-                    js = await resp.json()
-                    return js.get("access_token")
-    except Exception:
-        pass
-    return None
-
-
-async def extract_spotify_playlist_or_album(
-    url_or_id: str, user_spotify_cfg: Optional[dict] = None
-) -> tuple[str, list[dict]]:
-    """
-    Extrae todas las canciones de una Playlist, Álbum o colección de Spotify.
-    Funciona tanto con credenciales API del usuario como directamente por URL.
-    """
-    tracks: list[dict] = []
-    playlist_name = "Playlist de Spotify"
-
-    m_type = re.search(r"(playlist|album)/([a-zA-Z0-9]+)", url_or_id)
-    kind = m_type.group(1) if m_type else "playlist"
-    item_id = m_type.group(2) if m_type else url_or_id.strip()
-
-    token = None
-    if user_spotify_cfg:
-        if user_spotify_cfg.get("access_token"):
-            token = user_spotify_cfg["access_token"]
-        elif user_spotify_cfg.get("client_id") and user_spotify_cfg.get("client_secret"):
-            token = await fetch_spotify_token(
-                user_spotify_cfg["client_id"], user_spotify_cfg["client_secret"]
-            )
-
-    if token and re.match(r"^[a-zA-Z0-9]{15,30}$", item_id):
-        try:
-            async with aiohttp.ClientSession() as session:
-                api_url = f"https://api.spotify.com/v1/{kind}s/{item_id}"
-                async with session.get(
-                    api_url, headers={"Authorization": f"Bearer {token}"}, timeout=10
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        playlist_name = data.get("name", playlist_name)
-                        items = data.get("tracks", {}).get("items", [])
-                        for item in items:
-                            tr = item.get("track") if kind == "playlist" else item
-                            if not tr or not tr.get("name"):
-                                continue
-                            t_name = tr["name"]
-                            t_artists = ", ".join(
-                                a.get("name", "") for a in tr.get("artists", []) if a.get("name")
-                            )
-                            dur_sec = int((tr.get("duration_ms") or 0) / 1000)
-                            album_imgs = tr.get("album", {}).get("images", []) if kind == "playlist" else data.get("images", [])
-                            cover_url = album_imgs[0].get("url") if album_imgs else None
-                            tracks.append(
-                                {
-                                    "title": f"{t_name} - {t_artists}" if t_artists else t_name,
-                                    "artist": t_artists or "Spotify",
-                                    "query": f"{t_name} {t_artists}".strip(),
-                                    "duration": dur_sec,
-                                    "thumbnail": cover_url,
-                                    "webpage_url": tr.get("external_urls", {}).get(
-                                        "spotify", f"https://open.spotify.com/{kind}/{item_id}"
-                                    ),
-                                }
-                            )
-                        if tracks:
-                            return playlist_name, tracks
-        except Exception:
-            pass
-
-    try:
-        embed_url = f"https://open.spotify.com/embed/{kind}/{item_id}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                embed_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
-            ) as resp:
-                if resp.status == 200:
-                    html = await resp.text()
-                    m = re.search(r"__NEXT_DATA__[^>]*>(.*?)</script>", html)
-                    if m:
-                        data = json.loads(m.group(1))
-                        entity = (
-                            data.get("props", {})
-                            .get("pageProps", {})
-                            .get("state", {})
-                            .get("data", {})
-                            .get("entity", {})
-                        )
-                        playlist_name = entity.get("name") or entity.get("title") or playlist_name
-                        track_list = entity.get("trackList", [])
-                        for t in track_list:
-                            t_title = (t.get("title") or "").strip()
-                            t_sub = (t.get("subtitle") or "").replace("\xa0", " ").strip()
-                            dur_sec = int((t.get("duration") or 0) / 1000)
-                            if t_title:
-                                tracks.append(
-                                    {
-                                        "title": f"{t_title} - {t_sub}" if t_sub else t_title,
-                                        "artist": t_sub or "Spotify",
-                                        "query": f"{t_title} {t_sub}".strip(),
-                                        "duration": dur_sec,
-                                        "webpage_url": f"https://open.spotify.com/{kind}/{item_id}",
-                                    }
-                                )
-    except Exception:
-        pass
-
-    return playlist_name, tracks
-
-
-async def fetch_user_spotify_me_library(access_token: str) -> tuple[str, list[dict], list[dict]]:
-    """Sincroniza el perfil privado de Spotify (/me, /me/tracks y /me/playlists) cuando se provee un Token."""
-    account_name = "Cuenta Spotify"
-    playlists_out: list[dict] = []
-    liked_out: list[dict] = []
-    headers = {"Authorization": f"Bearer {access_token.strip()}"}
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get("https://api.spotify.com/v1/me", headers=headers, timeout=10) as r_me:
-                if r_me.status == 200:
-                    me_data = await r_me.json()
-                    account_name = me_data.get("display_name") or me_data.get("id") or account_name
-
-            async with session.get(
-                "https://api.spotify.com/v1/me/tracks?limit=40", headers=headers, timeout=10
-            ) as r_tr:
-                if r_tr.status == 200:
-                    tr_data = await r_tr.json()
-                    for item in tr_data.get("items", []):
-                        tr = item.get("track") or {}
-                        if tr.get("name"):
-                            art = ", ".join(a.get("name", "") for a in tr.get("artists", []))
-                            album_imgs = tr.get("album", {}).get("images", [])
-                            cover_url = album_imgs[0].get("url") if album_imgs else None
-                            liked_out.append(
-                                {
-                                    "title": f"{tr['name']} - {art}" if art else tr["name"],
-                                    "artist": art or "Spotify",
-                                    "query": f"{tr['name']} {art}".strip(),
-                                    "duration": int((tr.get("duration_ms") or 0) / 1000),
-                                    "thumbnail": cover_url,
-                                    "webpage_url": tr.get("external_urls", {}).get("spotify", ""),
-                                }
-                            )
-
-            async with session.get(
-                "https://api.spotify.com/v1/me/playlists?limit=10", headers=headers, timeout=10
-            ) as r_pl:
-                if r_pl.status == 200:
-                    pl_data = await r_pl.json()
-                    for pl in pl_data.get("items", []):
-                        pl_id = pl.get("id")
-                        pl_url = pl.get("external_urls", {}).get(
-                            "spotify", f"https://open.spotify.com/playlist/{pl_id}"
-                        )
-                        pl_name, pl_tracks = await extract_spotify_playlist_or_album(
-                            pl_url, {"access_token": access_token}
-                        )
-                        if pl_tracks:
-                            playlists_out.append(
-                                {
-                                    "name": pl.get("name") or pl_name,
-                                    "source": "spotify",
-                                    "url": pl_url,
-                                    "tracks": pl_tracks[:60],
-                                }
-                            )
-    except Exception:
-        pass
-
-    return account_name, playlists_out, liked_out
+# Nota: Funciones de Spotify removidas. El bot utiliza exclusivamente YouTube / YouTube Music
+# para garantizar audio de estudio oficial, sin intermediarios ni canciones incorrectas.
 
 
 async def extract_youtube_music_playlist(url: str) -> tuple[str, list[dict]]:
@@ -643,19 +430,26 @@ CONCERT_KEYWORDS = (
 # FILTRO ANTI-COVERS Y RANKING DE AUDIO OFICIAL (100% PRECISIÓN)
 # ==============================================================================
 UNWANTED_VARIANTS_BLACKLIST = (
-    "cover", "tribute", "tributo", "karaoke", "instrumental",
-    "parody", "parodia", "fan made", "fanmade", "fan-made",
-    "sped up", "speed up", "slowed", "reverb", "nightcore",
-    "daycore", "bass boosted", "8d audio", "acoustic cover",
-    "guitar cover", "piano cover", "vocal cover", "guitar lesson",
-    "drum cover", "bass cover", "tutorial", "remix", "rmx",
-    "mashup", "edit", "flip"
+    "cover", "covers", "tribute", "tributo", "homenaje",
+    "karaoke", "instrumental", "playback", "backing track", "pista", "base instrumental",
+    "parody", "parodia", "fan made", "fanmade", "fan-made", "fan video", "fan edit",
+    "sped up", "speed up", "speedup", "slowed", "slowed down", "reverb", "nightcore", "daycore",
+    "bass boosted", "8d audio", "3d audio", "8d",
+    "acoustic cover", "guitar cover", "piano cover", "vocal cover", "drum cover", "bass cover",
+    "guitar lesson", "piano lesson", "tutorial", "how to play", "como tocar", "cómo tocar", "tabs",
+    "remix", "rmx", "mashup", "edit", "flip", "bootleg", "vip mix",
+    "acoustic", "acustico", "acústico", "unplugged", "en guitarra", "en piano",
+    "ai cover", "cover ia", "ia cover", "ai voice", "voces ia", "voice ai", "suno", "udio",
+    "reacción", "reaccion", "reaction", "review",
+    "ensayo", "rehearsal", "soundcheck",
+    "versión cumbia", "version cumbia", "versión salsa", "version salsa", "versión bachata", "version bachata",
+    "versión banda", "version banda", "versión rock", "version rock", "versión acústica", "version acustica"
 )
 
 def clean_user_query(q: str) -> str:
     """Elimina prefijos conversacionales como 'pedi...', 'pon...', etc."""
     cleaned = re.sub(
-        r"^(?:por\s+fa(?:vor)?\s+|ped[ií]\s+|quiero\s+escuchar\s+|quiero\s+|pon(?:e)?\s+|reproduce\s+|toca\s+|busca\s+|play\s+)",
+        r"^(?:por\s+fa(?:vor)?\s+|ped[ií]\s+|quiero\s+escuchar\s+|quiero\s+|pon(?:e)?(?:te)?\s+(?:una\s+de\s+|un\s+tema\s+de\s+)?|pon(?:e)?\s+|reproduce\s+|toca\s+|busca\s+|play\s+)",
         "",
         q.strip(),
         flags=re.IGNORECASE,
@@ -664,137 +458,97 @@ def clean_user_query(q: str) -> str:
 
 def _user_explicitly_wanted_variant(query: str) -> bool:
     low = query.lower()
-    # Si el usuario dice "no un cover", "sin cover", "nada de covers", etc., NO quiere un cover
-    if re.search(r"\b(?:no|sin|cero|nada\s+de)\s+(?:un\s+|el\s+)?(?:cover|remix|karaoke)", low):
+    if re.search(r"\b(?:no|sin|cero|nada\s+de)\s+(?:un\s+|el\s+)?(?:cover|remix|karaoke|vivo|live)", low):
         return False
-    return any(re.search(rf"\b{re.escape(term)}\b", low) for term in UNWANTED_VARIANTS_BLACKLIST)
+    return any(re.search(rf"\b{re.escape(term)}\b", low) for term in ("cover", "remix", "karaoke", "instrumental", "tributo", "tribute"))
 
-def _is_unwanted_track(title: str, uploader: str, user_query: str) -> bool:
-    if _user_explicitly_wanted_variant(user_query):
-        return False
+def _is_unwanted_track(title: str, uploader: str, is_concert: bool = False) -> bool:
     combined = f"{title} {uploader}".lower()
     for term in UNWANTED_VARIANTS_BLACKLIST:
         if re.search(rf"\b{re.escape(term)}\b", combined):
             return True
+    if not is_concert:
+        for term in ("en vivo", "live", "concierto", "recital", "festival", "en directo", "tiny desk"):
+            if re.search(rf"\b{re.escape(term)}\b", combined):
+                return True
     return False
-
-def _matches_expected_title(candidate_title: str, expected_title: str) -> bool:
-    """Verifica que el título candidato contenga la canción solicitada."""
-    if not expected_title:
-        return True
-    c_clean = re.sub(r"[^\w\s]", " ", candidate_title.lower())
-    exp_clean = re.sub(r"[^\w\s]", " ", expected_title.lower())
-    stopwords = {"de", "del", "la", "el", "los", "las", "un", "una", "y", "en", "the", "a", "an", "and", "or", "of", "to", "por"}
-    exp_words = [w for w in exp_clean.split() if w not in stopwords and len(w) >= 3]
-    if not exp_words:
-        return True
-    c_words = set(c_clean.split())
-    return any(w in c_words or any(w in cw for cw in c_words) for w in exp_words)
-
 
 def _score_track_candidate(
     entry: dict,
-    user_query: str,
+    official_artist: str = "",
+    official_title: str = "",
     expected_duration: int = 0,
-    expected_artist: str = "",
-    expected_title: str = "",
+    is_concert: bool = False,
 ) -> float:
     title = (entry.get("title") or "").strip()
-    uploader = (entry.get("uploader") or "").strip()
+    uploader = (entry.get("uploader") or entry.get("channel") or "").strip()
     channel = uploader.lower()
     t_low = title.lower()
     dur = float(entry.get("duration") or 0)
-    is_concert = _is_concert_query(user_query)
+
+    if _is_unwanted_track(title, uploader, is_concert=is_concert):
+        return -10000.0
 
     score = 100.0
 
-    # Coincidencia obligatoria del título de la canción
-    if expected_title:
-        if _matches_expected_title(title, expected_title):
-            score += 100.0
-        else:
-            score -= 600.0
-
-    # 1. Pistas de canales oficiales de YouTube Music (Topic channels) son la versión de estudio perfecta
+    # 1. Pistas automáticas de sellos discográficos en YouTube Music (- Topic) -> 100% Pura Versión de Estudio
     if channel.endswith("- topic"):
-        score += 150.0
+        score += 5000.0
+    elif "- topic" in channel:
+        score += 4000.0
 
-    # 2. Audio oficial o Video oficial
+    # 2. Canal oficial del artista o VEVO
+    art_clean = official_artist.lower().strip()
+    if art_clean:
+        art_words = [w for w in re.sub(r"[^\w\s]", " ", art_clean).split() if len(w) >= 3]
+        if art_clean in channel or (art_words and all(w in channel for w in art_words)):
+            score += 3000.0
+        elif any(w in channel for w in art_words):
+            score += 1500.0
+        elif "vevo" in channel:
+            score += 2000.0
+        elif any(k in channel for k in ("records", "music", "official", "oficial")):
+            score += 500.0
+        else:
+            score -= 1500.0
+    else:
+        if "vevo" in channel:
+            score += 2000.0
+        elif any(k in channel for k in ("records", "music", "official", "oficial")):
+            score += 800.0
+
+    # 3. Audio / Video oficial del artista
     if any(k in t_low for k in ("official audio", "audio oficial")):
-        score += 100.0
+        score += 2000.0
     elif any(k in t_low for k in ("official music video", "video oficial")):
-        score += 85.0
+        score += 1500.0
+    elif "official lyric video" in t_low:
+        score += 1200.0
     elif "official video" in t_low:
-        score += 70.0
+        score += 1000.0
     elif "(audio)" in t_low or "[audio]" in t_low:
-        score += 50.0
+        score += 600.0
 
-    # 3. Coincidencia de artista en el canal/subidor
-    if expected_artist and expected_artist.lower() in channel:
-        score += 60.0
-    elif any(word in channel for word in user_query.lower().split() if len(word) >= 4):
-        score += 25.0
-
-    # 4. Ajuste por duración (si tenemos expected_duration > 0 de Spotify/Deezer)
+    # 4. Ajuste por duración de estudio si se conoce
     if expected_duration > 0 and not is_concert and dur > 0:
         diff = abs(dur - expected_duration)
-        if diff <= 4:
-            score += 70.0
-        elif diff <= 10:
-            score += 40.0
-        elif diff <= 25:
-            score += 15.0
+        if diff <= 3:
+            score += 1000.0
+        elif diff <= 8:
+            score += 500.0
+        elif diff <= 20:
+            score += 200.0
         elif diff > 60:
-            score -= 60.0
+            score -= 3000.0
 
-    # 5. Penalizaciones
-    if any(k in t_low for k in ("lyrics", "letra", "sub español", "sub esp", "sub.")):
-        score -= 20.0
-
-    if dur > 0 and dur <= 35.0 and not is_concert:
-        score -= 300.0
-
-    if not is_concert and dur > 700:
-        score -= 150.0
+    # 5. Penalizaciones por duración absurda si no es concierto
+    if not is_concert:
+        if dur > 0 and dur <= 40.0:
+            score -= 5000.0
+        if dur > 600:
+            score -= 1500.0
 
     return score
-
-async def resolve_track_metadata_deezer(query: str) -> Optional[dict]:
-    """
-    Busca metadatos oficiales en Deezer (título exacto, artista oficial, duración en segundos y carátula oficial de estudio).
-    """
-    cleaned = clean_user_query(query)
-    q_encoded = urllib.parse.quote(cleaned)
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"https://api.deezer.com/search?q={q_encoded}&limit=5", timeout=6
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    for item in data.get("data", []):
-                        t_name = (item.get("title") or "").strip()
-                        art_name = (item.get("artist", {}).get("name") or "").strip()
-                        dur = int(item.get("duration") or 0)
-                        album = item.get("album", {}) or {}
-                        cover = (
-                            album.get("cover_xl")
-                            or album.get("cover_big")
-                            or album.get("cover_medium")
-                            or item.get("artist", {}).get("picture_xl")
-                            or item.get("artist", {}).get("picture_big")
-                        )
-                        if t_name and dur > 35:
-                            return {
-                                "title": t_name,
-                                "artist": art_name,
-                                "duration": dur,
-                                "query": f"{art_name} - {t_name}",
-                                "thumbnail": cover,
-                            }
-    except Exception:
-        pass
-    return None
 
 
 def _is_concert_query(text: str) -> bool:
@@ -802,43 +556,59 @@ def _is_concert_query(text: str) -> bool:
     return any(k in low for k in CONCERT_KEYWORDS)
 
 
-def _build_search_queries(query: str) -> list[str]:
-    """Genera variantes limpias de búsqueda para encontrar siempre pistas completas."""
-    q_clean = query.strip()
-    variants = [q_clean]
-
-    simplified = re.sub(
-        r"\bmacha\s+y\s+el\s+", "", q_clean, flags=re.IGNORECASE
-    )
-    simplified = re.sub(
-        r"\b(feat\.?|ft\.?|con|y el|y la|y los)\b", " ", simplified, flags=re.IGNORECASE
-    )
-    simplified = re.sub(r"[()\[\]\-–—•|]+", " ", simplified)
-    simplified = re.sub(r"\s+", " ", simplified).strip()
-    if simplified and simplified.lower() not in [v.lower() for v in variants]:
-        variants.append(simplified)
-
-    words = simplified.split()
-    if len(words) > 4:
-        short_q = " ".join(words[:4])
-        if short_q.lower() not in [v.lower() for v in variants]:
-            variants.append(short_q)
-
-    return variants
+async def resolve_track_metadata_deezer(query: str) -> Optional[dict]:
+    """
+    Busca metadatos oficiales en Deezer (artista original, título oficial, duración y carátula HD).
+    Garantiza que la búsqueda se base en un tema oficial catalogado y no en versiones aficionadas.
+    """
+    cleaned = clean_user_query(query)
+    q_encoded = urllib.parse.quote(cleaned)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://api.deezer.com/search?q={q_encoded}&limit=3", timeout=6
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    tracks = data.get("data", [])
+                    if tracks:
+                        t = tracks[0]
+                        art = (t.get("artist", {}).get("name") or "").strip()
+                        tit = (t.get("title") or "").strip()
+                        dur = int(t.get("duration") or 0)
+                        album = t.get("album", {})
+                        cover = (
+                            album.get("cover_xl")
+                            or album.get("cover_big")
+                            or album.get("cover_medium")
+                        )
+                        if tit and art:
+                            return {
+                                "title": tit,
+                                "artist": art,
+                                "duration": dur,
+                                "thumbnail": cover,
+                                "query": f"{art} - {tit}",
+                            }
+    except Exception:
+        pass
+    return None
 
 
 def _find_full_track_sync(
     query_or_url: str,
+    official_artist: str = "",
+    official_title: str = "",
     expected_duration: int = 0,
-    expected_artist: str = "",
-    expected_title: str = "",
+    is_concert_req: bool = False,
 ) -> dict:
     """
-    Busca una pista o concierto COMPLETO en YouTube y SoundCloud (descartando previews de 30s).
-    Aplica validación estricta de título, filtro anti-covers y scoring de audio oficial.
+    Busca una pista o concierto en YouTube garantizando la versión original oficial de estudio.
+    Prioriza Topic channels (- Topic) de YouTube Music y canales oficiales del artista.
+    Descarta automáticamente covers, instrumentales, remixes, acústicos, en vivo y versiones aficionadas.
     """
     q_str = query_or_url.strip()
-    is_direct_url = q_str.startswith(("http://", "https://")) and "open.spotify.com" not in q_str
+    is_direct_url = q_str.startswith(("http://", "https://"))
 
     if is_direct_url:
         target_url = q_str.replace("music.youtube.com", "www.youtube.com")
@@ -856,108 +626,68 @@ def _find_full_track_sync(
         except Exception:
             pass
 
-    # 1. Búsqueda en YouTube con variantes limpias
-    yt_queries = [q_str]
-    if expected_title and expected_artist:
-        alt1 = f"{expected_title} {expected_artist}"
-        if alt1.lower() not in [q.lower() for q in yt_queries]:
-            yt_queries.append(alt1)
-        alt2 = f"{expected_artist} {expected_title}"
-        if alt2.lower() not in [q.lower() for q in yt_queries]:
-            yt_queries.append(alt2)
+    # Consultas ordenadas por probabilidad de ser el original de estudio
+    yt_queries = []
+    if official_artist and official_title:
+        yt_queries.append(f"{official_artist} {official_title} Topic")
+        yt_queries.append(f"{official_artist} {official_title} official audio")
+        yt_queries.append(f"{official_artist} {official_title} official music video")
+        yt_queries.append(f"{official_artist} {official_title}")
+    else:
+        if is_concert_req:
+            yt_queries.append(q_str)
+        else:
+            yt_queries.append(f"{q_str} Topic")
+            yt_queries.append(f"{q_str} official audio")
+            yt_queries.append(f"{q_str} official music video")
+            yt_queries.append(q_str)
+
+    best_cand = None
+    best_score = -9999.0
 
     for yt_q in yt_queries:
         try:
             yt_res = ytdl_full.extract_info(f"ytsearch10:{yt_q}", download=False)
             raw_entries = [e for e in (yt_res or {}).get("entries", []) if e]
-            if raw_entries:
-                valid_entries = []
-                for e in raw_entries:
-                    title = e.get("title") or ""
-                    uploader = e.get("uploader") or ""
-                    # Descartar si es un cover o variante no solicitada
-                    if _is_unwanted_track(title, uploader, q_str):
-                        continue
-                    # Descartar si el título de YouTube no coincide con la canción solicitada
-                    if expected_title and not _matches_expected_title(title, expected_title):
-                        continue
-                    score = _score_track_candidate(
-                        e,
-                        yt_q,
-                        expected_duration=expected_duration,
-                        expected_artist=expected_artist,
-                        expected_title=expected_title,
-                    )
-                    valid_entries.append((score, e))
+            for e in raw_entries:
+                title = e.get("title") or ""
+                uploader = e.get("uploader") or e.get("channel") or ""
+                if _is_unwanted_track(title, uploader, is_concert=is_concert_req):
+                    continue
+                score = _score_track_candidate(
+                    e,
+                    official_artist=official_artist,
+                    official_title=official_title,
+                    expected_duration=expected_duration,
+                    is_concert=is_concert_req,
+                )
+                if score > best_score:
+                    best_score = score
+                    best_cand = e
 
-                if valid_entries:
-                    valid_entries.sort(key=lambda x: x[0], reverse=True)
-                    # Intentar extraer stream playable de los mejores candidatos que coinciden
-                    for _, cand in valid_entries[:4]:
-                        if cand.get("url"):
-                            return cand
-                        win_url = cand.get("webpage_url") or f"https://www.youtube.com/watch?v={cand.get('id')}"
-                        try:
-                            full_win = ytdl_full.extract_info(win_url, download=False)
-                            if full_win:
-                                if "entries" in full_win:
-                                    f_entries = [fe for fe in full_win["entries"] if fe]
-                                    full_win = f_entries[0] if f_entries else full_win
-                                if full_win.get("url"):
-                                    return full_win
-                        except Exception:
-                            continue
+            # Si encontramos el master de estudio (- Topic o canal oficial con audio de estudio), terminar de inmediato
+            if best_score >= 4000.0:
+                break
         except Exception as yt_err:
             print(f"[YouTube Search Aviso] Falló intento '{yt_q}': {yt_err}", flush=True)
 
-    # 2. Respaldo en SoundCloud (descartando previews de 30s, covers y canciones no coincidentes)
-    sc_queries = _build_search_queries(q_str)
-    if expected_title and expected_artist:
-        sc_alt = f"{expected_artist} {expected_title}"
-        if sc_alt.lower() not in [q.lower() for q in sc_queries]:
-            sc_queries.insert(0, sc_alt)
-
-    for q_try in sc_queries:
+    if best_cand:
+        if best_cand.get("url"):
+            return best_cand
+        win_url = best_cand.get("webpage_url") or f"https://www.youtube.com/watch?v={best_cand.get('id')}"
         try:
-            flat_res = ytdl_flat.extract_info(f"scsearch8:{q_try}", download=False)
-            entries = [e for e in (flat_res or {}).get("entries", []) if e]
-
-            valid_candidates = []
-            for e in entries:
-                dur = float(e.get("duration") or 0)
-                if dur <= 35.0:
-                    continue
-                t = e.get("title") or ""
-                up = e.get("uploader") or ""
-                if _is_unwanted_track(t, up, q_str):
-                    continue
-                # VALIDACIÓN ESTRICTA: El tema de SoundCloud DEBE coincidir con el título pedido
-                if expected_title and not _matches_expected_title(t, expected_title):
-                    continue
-                valid_candidates.append(e)
-
-            if not valid_candidates:
-                continue
-
-            if expected_duration > 40:
-                valid_candidates.sort(
-                    key=lambda x: abs(float(x.get("duration") or 0) - expected_duration)
-                )
-
-            for candidate in valid_candidates[:3]:
-                cand_url = candidate.get("webpage_url") or candidate.get("url")
-                if not cand_url:
-                    continue
-                try:
-                    full_info = ytdl_full.extract_info(cand_url, download=False)
-                    if full_info and not _is_preview_track(full_info):
-                        return full_info
-                except Exception:
-                    continue
+            full_win = ytdl_full.extract_info(win_url, download=False)
+            if full_win:
+                if "entries" in full_win:
+                    f_entries = [fe for fe in full_win["entries"] if fe]
+                    full_win = f_entries[0] if f_entries else full_win
+                if full_win.get("url"):
+                    return full_win
         except Exception:
-            continue
+            pass
+        return best_cand
 
-    raise ValueError(f"No se encontró versión completa oficial para '{query_or_url}'")
+    raise ValueError(f"No se encontró la canción original de estudio en YouTube para '{query_or_url}'")
 
 
 def _download_stream_to_local_file_sync(
@@ -1003,68 +733,61 @@ def _download_stream_to_local_file_sync(
 
 async def search_song(query: str, requester: str, expected_duration: int = 0) -> Song:
     """
-    Busca cualquier canción o concierto asegurando que SIEMPRE sea la pista completa.
-    Soporta links directos de YouTube, YouTube Music, Spotify y búsquedas por texto.
-    Garantiza versiones oficiales y elimina covers mediante metadatos de estudio y scoring.
-    Prioriza carátulas oficiales de estudio (Deezer / Spotify) sobre miniaturas de YouTube.
+    Busca cualquier canción o concierto en YouTube garantizando la versión original de estudio.
+    Soporta links directos de YouTube / YouTube Music y búsquedas por nombre/artista.
+    Bloquea enlaces de Spotify para proteger la calidad y exactitud del audio.
     """
     raw_q = query.strip()
+    if "open.spotify.com" in raw_q or "spotify.com" in raw_q:
+        raise ValueError(
+            "Spotify está desactivado. Para garantizar la canción original exacta, busca por nombre en YouTube o usa un link de YouTube/YouTube Music."
+        )
+
     cleaned_q = clean_user_query(raw_q)
-    search_text = cleaned_q
-    expected_artist = ""
+    search_text = raw_q if raw_q.startswith(("http://", "https://")) else cleaned_q
+    official_artist = ""
     official_title = ""
     official_thumbnail = None
+    is_concert = _is_concert_query(cleaned_q)
 
-    if raw_q.startswith(("http://", "https://")):
-        if "open.spotify.com" in raw_q:
-            resolved = await resolve_external_url_to_search(raw_q)
-            if resolved:
-                search_text = resolved
-        else:
-            # Conservar URL directa de YouTube / SoundCloud para extraer el video/concierto exacto
-            search_text = raw_q
-
-    # Para cualquier búsqueda que no sea un concierto explícito, resolver carátula oficial y metadatos de estudio en Deezer
-    if not _is_concert_query(cleaned_q) and not raw_q.startswith(("http://", "https://")):
+    # Si es texto y no es concierto explícito, resolver metadatos de estudio en Deezer
+    if not raw_q.startswith(("http://", "https://")) and not is_concert:
         meta = await resolve_track_metadata_deezer(cleaned_q)
         if meta:
-            if expected_duration == 0:
-                expected_duration = meta["duration"]
-            search_text = meta["query"]
-            expected_artist = meta["artist"]
+            official_artist = meta["artist"]
             official_title = meta["title"]
-            official_thumbnail = meta.get("thumbnail")
-        else:
-            search_text = cleaned_q
-    elif "open.spotify.com" in raw_q and not _is_concert_query(search_text):
-        meta = await resolve_track_metadata_deezer(search_text)
-        if meta:
-            if expected_duration == 0:
-                expected_duration = meta["duration"]
-            official_thumbnail = meta.get("thumbnail")
-            expected_artist = meta.get("artist") or expected_artist
-            official_title = meta.get("title") or official_title
+            expected_duration = expected_duration or meta["duration"]
+            official_thumbnail = meta["thumbnail"]
+            search_text = meta["query"]
 
     loop = asyncio.get_running_loop()
     info = await loop.run_in_executor(
-        None, lambda: _find_full_track_sync(search_text, expected_duration, expected_artist, official_title)
+        None, lambda: _find_full_track_sync(
+            search_text,
+            official_artist=official_artist,
+            official_title=official_title,
+            expected_duration=expected_duration,
+            is_concert_req=is_concert,
+        )
     )
 
-    # Si aún no tenemos carátula oficial y no es un concierto explícito, buscar la carátula oficial con los datos del track
-    if not official_thumbnail and not _is_concert_query(cleaned_q) and not _is_concert_query(info.get("title", "")):
-        cand_artist = expected_artist or info.get("uploader") or ""
-        cand_title = official_title or info.get("title") or search_text
-        meta_retry = await resolve_track_metadata_deezer(f"{cand_artist} {cand_title}".strip())
-        if meta_retry and meta_retry.get("thumbnail"):
-            official_thumbnail = meta_retry["thumbnail"]
+    thumbnail = (
+        official_thumbnail
+        or info.get("thumbnail")
+        or (info.get("thumbnails") and info["thumbnails"][-1].get("url"))
+    )
+
+    uploader_name = (official_artist or info.get("uploader") or info.get("channel") or "YouTube").strip()
+    uploader_clean = re.sub(r"\s*-\s*Topic$", "", uploader_name, flags=re.IGNORECASE)
+    final_title = f"{official_artist} - {official_title}" if (official_artist and official_title) else info.get("title", search_text)
 
     return Song(
-        title=official_title or info.get("title", search_text),
+        title=final_title,
         url=info["url"],
         webpage_url=info.get("webpage_url", raw_q if raw_q.startswith("http") else "https://www.youtube.com"),
         duration=int(info.get("duration") or expected_duration or 0),
-        thumbnail=official_thumbnail or info.get("thumbnail"),
-        uploader=expected_artist or info.get("uploader", "Artista"),
+        thumbnail=thumbnail,
+        uploader=uploader_clean,
         requester=requester,
         search_query=search_text,
     )
@@ -1214,23 +937,23 @@ def build_player_embed(guild: discord.Guild, state: GuildMusicState) -> discord.
 
     if not song:
         embed = discord.Embed(
-            title="🐧✨ PENGU PIXEL JUKEBOX • SPOTIFY EDITION",
+            title="🐧✨ PENGU PIXEL JUKEBOX • YOUTUBE MUSIC EDITION",
             description=(
                 "```ini\n"
                 "[ ESTADO: ❄️ LISTO EN EL IGLÚ // AUDIO HD 320KBPS ]\n"
                 "```\n"
                 "### 🎧 ¡Cabina Musical de Thomi!\n"
-                "Escucha música en calidad de estudio conectando tu cuenta o playlists de **Spotify**.\n\n"
+                "Escucha música en calidad de estudio original usando **YouTube / YouTube Music**.\n\n"
                 "╭─── **Comandos Rápidos** ───╮\n"
                 "  ▸ `➕ Pedir Canción` ➔ Escribe cualquier canción o artista\n"
-                "  ▸ `💚 Mi Spotify` ➔ Vincula tus playlists y canciones favoritas\n"
-                "  ▸ `❤️ Me Gusta` ➔ Guarda la canción actual en tu colección\n"
+                "  ▸ `❤️ Mi YouTube Music` ➔ Vincula tus playlists y enlaces favoritos\n"
+                "  ▸ `⭐ Me Gusta` ➔ Guarda la canción actual en tu colección\n"
                 "╰────────────────────────────╯\n\n"
                 "💡 *Entra a un canal de voz y presiona **`➕ Pedir Canción`** para empezar.*"
             ),
             color=COLOR_PIXEL_CYAN,
         )
-        embed.set_footer(text="✨ Pengu Pixel DJ • Audio Pure HD • Spotify Integration")
+        embed.set_footer(text="✨ Pengu Pixel DJ • Audio Pure HD • YouTube 100% Preciso")
         return embed
 
     vol_bars = int(round(state.volume * 10))
@@ -1271,10 +994,10 @@ def build_player_embed(guild: discord.Guild, state: GuildMusicState) -> discord.
 # ==============================================================================
 # MODALES Y VISTAS DE USUARIO (TODOS LOS LABELS <= 45 CHARS GARANTIZADOS)
 # ==============================================================================
-class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción (Spotify)"):
+class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción o Link"):
     query = discord.ui.TextInput(
-        label="Canción, Artista o Link de Spotify",
-        placeholder="Ej: wave to earth - love, Luis Miguel, o link de Spotify",
+        label="Canción, Artista o Link de YouTube",
+        placeholder="Ej: wave to earth - bad, Luis Miguel, o link de YouTube",
         required=True,
         max_length=300,
     )
@@ -1286,202 +1009,6 @@ class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción (Spotify
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True, ephemeral=True)
         await self.bot.handle_play_request(interaction, self.query.value)
-
-
-class ConnectSpotifyModal(discord.ui.Modal, title="💚 Conectar Mi Spotify al Bot"):
-    playlist_or_profile = discord.ui.TextInput(
-        label="Link de Playlist/Álbum o Nombre Artista",
-        placeholder="Pega link de Spotify o escribe un artista (ej: Luis Miguel)",
-        required=False,
-        max_length=300,
-    )
-    playlist_alias = discord.ui.TextInput(
-        label="Nombre para guardar esta Playlist",
-        placeholder="Ej: Mi Playlist Favorita / Luis Miguel Mix",
-        required=False,
-        max_length=60,
-    )
-    spotify_creds = discord.ui.TextInput(
-        label="Credencial Spotify (Opcional: Token/Key)",
-        placeholder="Opcional: CLIENT_ID:CLIENT_SECRET o tu OAuth Token personal",
-        required=False,
-        style=discord.TextStyle.paragraph,
-        max_length=500,
-    )
-
-    def __init__(self, bot: "PenguPixelBot"):
-        super().__init__()
-        self.bot = bot
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        profile = get_user_profile(interaction.user.id, interaction.user.display_name)
-        creds_raw = (self.spotify_creds.value or "").strip()
-        url_raw = (self.playlist_or_profile.value or "").strip()
-        alias_raw = (self.playlist_alias.value or "").strip()
-
-        msg_parts = []
-        tracks_to_autoplay: list[dict] = []
-        autoplay_title = ""
-
-        # 1. Procesar credenciales si el usuario las ingresó
-        if creds_raw:
-            if ":" in creds_raw and len(creds_raw.split(":", 1)) == 2 and " " not in creds_raw:
-                cid, csec = creds_raw.split(":", 1)
-                tok = await fetch_spotify_token(cid, csec)
-                if tok:
-                    profile["spotify"]["client_id"] = cid.strip()
-                    profile["spotify"]["client_secret"] = csec.strip()
-                    profile["spotify"]["connected"] = True
-                    profile["spotify"]["account_name"] = f"API Key ({cid[:6]}...)"
-                    msg_parts.append("✅ **Credenciales API de Spotify (`Client ID + Secret`) verificadas y guardadas.**")
-                else:
-                    msg_parts.append("⚠️ No se pudo validar el `Client ID:Client Secret` en Spotify.")
-            else:
-                acc_name, synced_pls, liked_tracks = await fetch_user_spotify_me_library(creds_raw)
-                profile["spotify"]["access_token"] = creds_raw
-                profile["spotify"]["connected"] = True
-                profile["spotify"]["account_name"] = acc_name
-                if liked_tracks:
-                    existing_queries = {x["query"] for x in profile["liked_songs"]}
-                    added_likes = 0
-                    for lt in liked_tracks:
-                        if lt["query"] not in existing_queries:
-                            profile["liked_songs"].append(lt)
-                            added_likes += 1
-                    msg_parts.append(f"💚 **Sincronizadas {added_likes} canciones de tus 'Me Gusta' de Spotify ({acc_name}).**")
-                    tracks_to_autoplay = liked_tracks[:15]
-                    autoplay_title = f"💚 Tus Me Gusta de Spotify ({acc_name})"
-                for sp_pl in synced_pls:
-                    if not any(p["url"] == sp_pl["url"] for p in profile["playlists"]):
-                        profile["playlists"].append(sp_pl)
-                if synced_pls:
-                    msg_parts.append(f"📂 **Sincronizadas {len(synced_pls)} playlists de tu cuenta Spotify.**")
-                if not liked_tracks and not synced_pls:
-                    msg_parts.append("✅ **Token de Spotify guardado en tu perfil personal.**")
-
-        # 2. Procesar Link de Playlist/Álbum O nombre de artista/canción escrito por el usuario
-        if url_raw:
-            if "open.spotify.com" in url_raw and ("/playlist/" in url_raw or "/album/" in url_raw):
-                pl_name, tracks = await extract_spotify_playlist_or_album(url_raw, profile["spotify"])
-                final_name = alias_raw or pl_name
-                if tracks:
-                    profile["spotify"]["connected"] = True
-                    profile["spotify"]["profile_url"] = url_raw
-                    profile["playlists"] = [p for p in profile["playlists"] if p.get("url") != url_raw]
-                    profile["playlists"].append(
-                        {
-                            "name": f"💚 {final_name}",
-                            "source": "spotify",
-                            "url": url_raw,
-                            "tracks": tracks,
-                        }
-                    )
-                    tracks_to_autoplay = tracks
-                    autoplay_title = f"💚 {final_name}"
-                    msg_parts.append(
-                        f"🎶 **Playlist de Spotify importada:** `{final_name}` (**{len(tracks)} canciones**)."
-                    )
-                else:
-                    msg_parts.append("⚠️ No pude leer canciones de ese link de Spotify (verifica que sea pública).")
-            elif "open.spotify.com/track/" in url_raw:
-                resolved = await resolve_external_url_to_search(url_raw)
-                if resolved:
-                    track_item = {
-                        "title": resolved,
-                        "artist": "Spotify",
-                        "query": resolved,
-                        "duration": 0,
-                        "webpage_url": url_raw,
-                    }
-                    profile["liked_songs"].append(track_item)
-                    profile["spotify"]["connected"] = True
-                    tracks_to_autoplay = [track_item]
-                    autoplay_title = f"💚 {resolved}"
-                    msg_parts.append(f"💚 **Canción de Spotify guardada y enviada al reproductor:** `{resolved}`")
-            elif url_raw.startswith(("http://", "https://")):
-                resolved = await resolve_external_url_to_search(url_raw)
-                final_name = alias_raw or resolved or "Concierto / Pista"
-                track_item = {
-                    "title": final_name,
-                    "artist": "YouTube / Stream",
-                    "query": url_raw,
-                    "duration": 0,
-                    "webpage_url": url_raw,
-                }
-                profile["liked_songs"].append(track_item)
-                profile["playlists"].append(
-                    {
-                        "name": f"💚 {final_name[:70]}",
-                        "source": "spotify",
-                        "url": url_raw,
-                        "tracks": [track_item],
-                    }
-                )
-                tracks_to_autoplay = [track_item]
-                autoplay_title = f"💚 {final_name}"
-                msg_parts.append(f"💚 **Pista/Concierto guardado y reproduciéndose:** `{final_name}`")
-            else:
-                if _is_concert_query(url_raw):
-                    final_name = alias_raw or url_raw.title()
-                    track_item = {
-                        "title": final_name,
-                        "artist": "Concierto en Vivo",
-                        "query": url_raw,
-                        "duration": 0,
-                        "webpage_url": "https://www.youtube.com",
-                    }
-                    profile["playlists"].append(
-                        {
-                            "name": f"💚 {final_name[:70]}",
-                            "source": "spotify",
-                            "url": f"search:{url_raw}",
-                            "tracks": [track_item],
-                        }
-                    )
-                    tracks_to_autoplay = [track_item]
-                    autoplay_title = f"💚 {final_name}"
-                    msg_parts.append(f"💚 **¡Concierto `{final_name}` cargado y reproduciéndose!**")
-                else:
-                    mix_tracks = await fetch_artist_or_mix_tracks(url_raw, limit=15)
-                    final_name = alias_raw or f"Mix: {url_raw.title()}"
-                    if mix_tracks:
-                        profile["spotify"]["connected"] = True
-                        profile["spotify"]["account_name"] = final_name
-                        profile["playlists"].append(
-                            {
-                                "name": f"💚 {final_name}",
-                                "source": "spotify",
-                                "url": f"search:{url_raw}",
-                                "tracks": mix_tracks,
-                            }
-                        )
-                        if url_raw not in profile["tastes"]:
-                            profile["tastes"].append(url_raw)
-                        tracks_to_autoplay = mix_tracks
-                        autoplay_title = f"💚 {final_name}"
-                        msg_parts.append(
-                            f"💚 **¡Playlist creada automáticamente para `{url_raw}` con {len(mix_tracks)} éxitos oficiales!**"
-                        )
-
-        update_user_profile(interaction.user.id, profile)
-        if not msg_parts:
-            msg_parts.append("ℹ️ Escribe un artista, pega el link de tu playlist de Spotify o tu credencial.")
-
-        # Si se importaron pistas, ponerlas a sonar automáticamente en el canal de voz
-        if tracks_to_autoplay:
-            await self.bot.enqueue_track_list(
-                interaction, autoplay_title, tracks_to_autoplay, send_followup=False
-            )
-            msg_parts.append(f"🔊 **¡Reproduciendo ahora mismo `{autoplay_title}` en el canal de voz!**")
-
-        embed = build_user_music_hub_embed(interaction.user, profile)
-        await interaction.followup.send(
-            content="\n".join(msg_parts),
-            embed=embed,
-            view=UserMusicHubView(self.bot, interaction.user.id),
-            ephemeral=True,
-        )
 
 
 class ConnectYTMusicModal(discord.ui.Modal, title="❤️ Conectar Mi YouTube Music"):
@@ -1712,40 +1239,40 @@ class SetPersonalTastesModal(discord.ui.Modal, title="🎸 Asignar Música de Mi
 
 
 def build_user_music_hub_embed(user: discord.abc.User, profile: dict) -> discord.Embed:
-    sp = profile.get("spotify", {})
-    playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+    yt = profile.get("ytmusic", {})
+    playlists = profile.get("playlists", [])
     liked = profile.get("liked_songs", [])
     tastes = profile.get("tastes", [])
 
-    sp_status = (
-        f"🟢 **Conectado** (`{sp.get('account_name') or 'Playlists Activas'}`)"
-        if sp.get("connected")
-        else "⚪ *No vinculado aún*"
+    yt_status = (
+        f"🟢 **Activo** (`{yt.get('account_name') or 'Conectado'}`)"
+        if yt.get("connected")
+        else "⚪ *Sin configurar*"
     )
 
     embed = discord.Embed(
-        title=f"🎧 CENTRO SPOTIFY DE {user.display_name.upper()}",
+        title=f"🐧🎧 CENTRO MUSICAL // {user.display_name.upper()}",
         description=(
-            "```ini\n"
-            "[ PERFIL DE SPOTIFY PERSONAL // ACCESO CON 1 CLIC ]\n"
+            "```yaml\n"
+            "[ PERFIL DE YOUTUBE MUSIC Y RADIO // 100% PRECISO ]\n"
             "```\n"
-            "Conecta tu cuenta o playlists de **Spotify** para escucharlas de inmediato con calidad HD:\n"
+            "Guarda tus playlists de **YouTube / YouTube Music**, tus artistas favoritos y reproduce tu radio personalizada con audio oficial de estudio:\n"
         ),
-        color=COLOR_SPOTIFY_GREEN if sp.get("connected") else COLOR_PIXEL_CYAN,
+        color=COLOR_PIXEL_PURPLE,
     )
-    embed.add_field(name="💚 Estado Spotify", value=sp_status, inline=True)
-    embed.add_field(name="❤️ Mis Favoritos", value=f"`{len(liked)} pistas`", inline=True)
-    embed.add_field(name="📂 Listas Guardadas", value=f"`{len(playlists)} playlists`", inline=True)
+    embed.add_field(name="❤️ Estado YouTube", value=yt_status, inline=True)
+    embed.add_field(name="⭐ Mis Guardadas", value=f"`{len(liked)} pistas`", inline=True)
+    embed.add_field(name="📂 Playlists", value=f"`{len(playlists)} listas`", inline=True)
 
     if playlists:
         pl_lines = "\n".join(
             f"• **{p['name']}** (`{len(p.get('tracks', []))} canciones`)" for p in playlists[:6]
         )
-        embed.add_field(name="🎶 Playlists de Spotify", value=pl_lines, inline=False)
+        embed.add_field(name="🎶 Playlists de YouTube Music", value=pl_lines, inline=False)
     else:
         embed.add_field(
-            name="🎶 Playlists de Spotify",
-            value="*Presiona **`💚 Conectar Spotify`** abajo para vincular tus listas.*",
+            name="🎶 Playlists Guardadas",
+            value="*Presiona **`❤️ Conectar YouTube Music`** abajo para vincular tus playlists.*",
             inline=False,
         )
 
@@ -1756,12 +1283,12 @@ def build_user_music_hub_embed(user: discord.abc.User, profile: dict) -> discord
             inline=False,
         )
 
-    embed.set_footer(text="🔒 Tu música es privada y solo tú puedes gestionarla desde este panel")
+    embed.set_footer(text="🔒 Audio oficial de estudio reproducido directamente desde YouTube (Cero Spotify)")
     return embed
 
 
 class UserPlaylistSelect(discord.ui.Select):
-    """Menú desplegable persistente para reproducir tus playlists de Spotify o abrir la conexión."""
+    """Menú desplegable persistente para reproducir tus playlists de YouTube Music."""
 
     def __init__(self, bot: "PenguPixelBot", user_id: Optional[int] = None, profile: Optional[dict] = None):
         self.bot = bot
@@ -1772,28 +1299,28 @@ class UserPlaylistSelect(discord.ui.Select):
             if liked:
                 options.append(
                     discord.SelectOption(
-                        label=f"⭐ Mis Canciones Favoritas ({len(liked)} pistas)",
+                        label=f"⭐ Mis Canciones Guardadas ({len(liked)} pistas)",
                         value="__liked__",
-                        description="Reproducir tus canciones favoritas guardadas con Me Gusta",
+                        description="Reproducir tus canciones guardadas",
                     )
                 )
 
-            playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+            playlists = profile.get("playlists", [])
             for idx, pl in enumerate(playlists[:18]):
                 count = len(pl.get("tracks", []))
                 options.append(
                     discord.SelectOption(
                         label=f"{pl['name'][:80]}",
                         value=f"pl:{idx}",
-                        description=f"Reproducir {count} canciones de esta playlist de Spotify",
+                        description=f"Reproducir {count} canciones de esta lista",
                     )
                 )
 
         options.append(
             discord.SelectOption(
-                label="💚 Agregar Playlist / Artista de Spotify...",
-                value="__open_spotify__",
-                description="Abre la ventana para pegar tu link de Spotify, Token o Artista",
+                label="❤️ Agregar Playlist / Enlace de YouTube Music...",
+                value="__open_ytmusic__",
+                description="Pega tu enlace de Playlist o Video de YouTube / YouTube Music",
             )
         )
         options.append(
@@ -1805,7 +1332,7 @@ class UserPlaylistSelect(discord.ui.Select):
         )
 
         super().__init__(
-            placeholder="▶️ Elige tu Playlist de Spotify aquí...",
+            placeholder="▶️ Elige tu Playlist de YouTube Music aquí...",
             min_values=1,
             max_values=1,
             options=options[:25],
@@ -1815,8 +1342,8 @@ class UserPlaylistSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         val = self.values[0]
-        if val == "__open_spotify__":
-            return await interaction.response.send_modal(ConnectSpotifyModal(self.bot))
+        if val == "__open_ytmusic__":
+            return await interaction.response.send_modal(ConnectYTMusicModal(self.bot))
         if val == "__open_tastes__":
             return await interaction.response.send_modal(SetPersonalTastesModal(self.bot))
 
@@ -1825,10 +1352,10 @@ class UserPlaylistSelect(discord.ui.Select):
 
         if val == "__liked__":
             tracks = profile.get("liked_songs", [])
-            pl_title = f"⭐ Favoritos de {interaction.user.display_name}"
+            pl_title = f"⭐ Guardadas de {interaction.user.display_name}"
         elif val.startswith("pl:"):
             idx = int(val.split(":", 1)[1])
-            playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+            playlists = profile.get("playlists", [])
             if idx >= len(playlists):
                 return await interaction.followup.send("⚠️ Playlist no encontrada.", ephemeral=True)
             pl_title = playlists[idx]["name"]
@@ -1840,7 +1367,7 @@ class UserPlaylistSelect(discord.ui.Select):
 
 
 class UserMusicHubView(discord.ui.View):
-    """Panel interactivo persistente para gestionar Spotify y Favoritos del usuario."""
+    """Panel interactivo persistente para gestionar YouTube Music y Favoritos del usuario."""
 
     def __init__(self, bot: "PenguPixelBot", user_id: Optional[int] = None):
         super().__init__(timeout=None)
@@ -1849,17 +1376,17 @@ class UserMusicHubView(discord.ui.View):
         self.add_item(UserPlaylistSelect(bot, user_id, profile))
 
     @discord.ui.button(
-        label="💚 Conectar Spotify",
-        style=discord.ButtonStyle.success,
-        custom_id="pengu:hub_spotify",
+        label="❤️ Conectar YouTube Music",
+        style=discord.ButtonStyle.primary,
+        custom_id="pengu:hub_ytmusic",
         row=1,
     )
-    async def btn_spotify(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ConnectSpotifyModal(self.bot))
+    async def btn_ytmusic(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ConnectYTMusicModal(self.bot))
 
     @discord.ui.button(
         label="🎸 Asignar Mis Gustos",
-        style=discord.ButtonStyle.primary,
+        style=discord.ButtonStyle.secondary,
         custom_id="pengu:hub_tastes",
         row=1,
     )
@@ -1868,7 +1395,7 @@ class UserMusicHubView(discord.ui.View):
 
     @discord.ui.button(
         label="📻 Reproducir Mi Radio",
-        style=discord.ButtonStyle.secondary,
+        style=discord.ButtonStyle.success,
         custom_id="pengu:hub_radio",
         row=1,
     )
@@ -1885,7 +1412,7 @@ class UserMusicHubView(discord.ui.View):
 
         for s in profile.get("liked_songs", []):
             pool.append(s)
-        playlists = [p for p in profile.get("playlists", []) if p.get("source") != "ytmusic"]
+        playlists = profile.get("playlists", [])
         for pl in playlists:
             pool.extend(pl.get("tracks", []))
         for taste in profile.get("tastes", []):
@@ -2171,7 +1698,7 @@ class ServerMasterPanelView(discord.ui.View):
         await interaction.response.send_modal(RequestSongModal(self.bot))
 
     @discord.ui.button(
-        label="💚❤️ Mi Spotify / YT Music",
+        label="❤️ Mi YouTube Music",
         style=discord.ButtonStyle.success,
         custom_id="pengu:master_user_hub",
         row=0,
@@ -2779,13 +2306,19 @@ class PenguPixelBot(commands.Bot):
         if not interaction.guild or not isinstance(interaction.user, discord.Member):
             return
 
+        if "spotify.com" in query.lower():
+            return await interaction.followup.send(
+                "🚫 **Spotify está desactivado en este bot.**\n\n"
+                "🔒 **¿Por qué?** Spotify protege su música con DRM y no permite a los bots reproducir su audio original. "
+                "Por eso antes sonaban versiones diferentes, covers o temas no deseados.\n\n"
+                "✨ **Para escuchar la canción original exacta en alta fidelidad:**\n"
+                "• Escribe el nombre y artista: `/play nombre artista` (ej: `/play wave to earth - bad`)\n"
+                "• O pega un enlace directo de **YouTube** o **YouTube Music**.",
+                ephemeral=True,
+            )
+
         pl_kind = is_playlist_url(query)
-        if pl_kind == "spotify":
-            profile = get_user_profile(interaction.user.id, interaction.user.display_name)
-            pl_name, tracks = await extract_spotify_playlist_or_album(query, profile.get("spotify"))
-            if tracks:
-                return await self.enqueue_track_list(interaction, f"💚 {pl_name}", tracks)
-        elif pl_kind == "ytmusic":
+        if pl_kind == "ytmusic":
             pl_name, tracks = await extract_youtube_music_playlist(query)
             if tracks:
                 return await self.enqueue_track_list(interaction, f"❤️ {pl_name}", tracks)
@@ -2939,15 +2472,15 @@ class PenguPixelBot(commands.Bot):
 def register_commands(target_bot: PenguPixelBot):
     @target_bot.tree.command(
         name="panel",
-        description="🐧 Abre el Panel Maestro del Server de Thomi (Música, Spotify/YTMusic y Pixel Art)",
+        description="🐧 Abre el Panel Maestro del Server de Thomi (Música, YouTube Music y Pixel Art)",
     )
     async def cmd_panel(interaction: discord.Interaction):
         embed = discord.Embed(
             title="🐧🎨 PANEL MAESTRO // SERVER DE THOMI",
             description=(
                 "¡Controla todo el **Server de Thomi** desde aquí **con un solo clic**!\n\n"
-                "🔹 **🎶 Pedir Canción / Playlist:** Reproduce cualquier canción completa o playlist de Spotify/YT Music.\n"
-                "🔹 **💚❤️ Mi Spotify / YT Music:** Vincula tus credenciales, guarda tus playlists y crea tu radio personal.\n"
+                "🔹 **🎶 Pedir Canción / Playlist:** Reproduce cualquier canción oficial de estudio o playlist de YouTube/YT Music.\n"
+                "🔹 **❤️ Mi YouTube Music:** Guarda tus playlists de YouTube y crea tu radio personal.\n"
                 "🔹 **🎨 Remodelar Servidor:** Crea automáticamente las categorías estéticas, canales y roles.\n"
                 "🔹 **🎨 Generar Paleta Pixel Art:** Crea una paleta de colores visual con códigos HEX."
             ),
@@ -2964,16 +2497,16 @@ def register_commands(target_bot: PenguPixelBot):
 
     @target_bot.tree.command(
         name="play",
-        description="🎶 Reproduce cualquier canción, artista o Playlist de Spotify / YouTube Music sin cortes",
+        description="🎶 Reproduce cualquier canción oficial o Playlist de YouTube / YouTube Music",
     )
-    @app_commands.describe(cancion="Nombre de la canción, artista (ej. Luis Miguel) o link de Spotify/YT Music")
+    @app_commands.describe(cancion="Nombre de la canción, artista (ej. Luis Miguel) o link de YouTube/YT Music")
     async def cmd_play(interaction: discord.Interaction, cancion: str):
         await interaction.response.defer(thinking=True, ephemeral=True)
         await target_bot.handle_play_request(interaction, cancion)
 
     @target_bot.tree.command(
         name="mi_musica",
-        description="💚❤️ Abre tu Centro Personal de Spotify y YouTube Music (Credenciales, Playlists y Radio)",
+        description="❤️ Abre tu Centro Personal de YouTube Music (Playlists y Radio)",
     )
     async def cmd_mi_musica(interaction: discord.Interaction):
         profile = get_user_profile(interaction.user.id, interaction.user.display_name)
@@ -2986,20 +2519,17 @@ def register_commands(target_bot: PenguPixelBot):
 
     @target_bot.tree.command(
         name="vincular_musica",
-        description="🔑 Conecta directamente tu cuenta/credencial o playlist de Spotify o YouTube Music",
+        description="🔑 Conecta directamente tu Playlist de YouTube Music o tus Gustos Musicales",
     )
-    @app_commands.describe(plataforma="Elige si deseas conectar Spotify, YouTube Music o tus Gustos")
+    @app_commands.describe(plataforma="Elige si deseas conectar YouTube Music o tus Gustos")
     @app_commands.choices(
         plataforma=[
-            app_commands.Choice(name="💚 Spotify (Playlist, Artista o Credencial)", value="spotify"),
-            app_commands.Choice(name="❤️ YouTube Music (Playlist, Artista o Credencial)", value="ytmusic"),
+            app_commands.Choice(name="❤️ YouTube Music (Playlist o Video)", value="ytmusic"),
             app_commands.Choice(name="🎸 Mis Artistas y Géneros Favoritos", value="tastes"),
         ]
     )
     async def cmd_vincular_musica(interaction: discord.Interaction, plataforma: str):
-        if plataforma == "spotify":
-            await interaction.response.send_modal(ConnectSpotifyModal(target_bot))
-        elif plataforma == "ytmusic":
+        if plataforma == "ytmusic":
             await interaction.response.send_modal(ConnectYTMusicModal(target_bot))
         else:
             await interaction.response.send_modal(SetPersonalTastesModal(target_bot))
