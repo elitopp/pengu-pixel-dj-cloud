@@ -615,7 +615,7 @@ def _find_full_track_sync(
             if info and "entries" in info:
                 entries = [e for e in info["entries"] if e]
                 info = entries[0] if entries else None
-            if info and info.get("url"):
+            if info and info.get("url") and "youtube.com" not in info["url"]:
                 return info
         except Exception:
             pass
@@ -669,18 +669,21 @@ def _find_full_track_sync(
     if scored_candidates:
         # Ordenar los candidatos por mayor puntuación oficial (primero canales oficiales y de discográfica)
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
-        # Intentar extraer stream válido de los mejores candidatos hasta que uno responda
+        # Extraer el enlace de stream directo de audio (googlevideo) del mejor candidato válido
         for score, cand in scored_candidates[:6]:
-            if cand.get("url"):
-                return cand
-            win_url = cand.get("webpage_url") or f"https://www.youtube.com/watch?v={cand.get('id')}"
+            vid_id = cand.get("id") or cand.get("url")
+            if vid_id and not vid_id.startswith("http"):
+                win_url = f"https://www.youtube.com/watch?v={vid_id}"
+            else:
+                win_url = cand.get("webpage_url") or cand.get("url")
             try:
                 full_win = ytdl_full.extract_info(win_url, download=False)
                 if full_win:
                     if "entries" in full_win:
                         f_entries = [fe for fe in full_win["entries"] if fe]
                         full_win = f_entries[0] if f_entries else full_win
-                    if full_win.get("url"):
+                    stream_url = full_win.get("url")
+                    if stream_url and "youtube.com" not in stream_url:
                         return full_win
             except Exception as extract_err:
                 print(f"[YouTube Extract Aviso] Falló candidato '{cand.get('title')}': {extract_err}", flush=True)
