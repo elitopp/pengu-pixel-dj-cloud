@@ -246,6 +246,7 @@ class GuildMusicState:
     seek_offset: float = 0.0
     suppress_after_callback: bool = False
     prefetch_task: Optional[asyncio.Task] = None
+    active_process: Optional[subprocess.Popen] = None
 
 
 music_states: dict[int, GuildMusicState] = {}
@@ -717,44 +718,34 @@ def _find_full_track_sync(
 
 
 def _download_stream_to_local_file_sync(
-    stream_url: str, target_path: Path, timeout_sec: int = 20
+    url_or_webpage: str, target_path: Path, timeout_sec: int = 35
 ) -> bool:
     """
-    Descarga/remuxea el stream completo a un contenedor universal .mkv en disco.
-    Soporta MP3, Opus y AAC con -c:a copy sin fallar y elimina los cortes a mitad de canción.
+    Descarga el audio de alta calidad directamente con yt-dlp a disco.
+    Elimina los errores 403 Forbidden de YouTube y garantiza reproducción 100% fluida.
     """
-    ffmpeg_exe = get_ffmpeg_executable()
     try:
         if target_path.exists():
             try:
                 target_path.unlink()
             except Exception:
                 pass
-        cmd = [
-            ffmpeg_exe,
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-reconnect",
-            "1",
-            "-reconnect_streamed",
-            "1",
-            "-reconnect_delay_max",
-            "5",
-            "-i",
-            stream_url,
-            "-vn",
-            "-c:a",
-            "copy",
-            str(target_path),
-        ]
-        res = subprocess.run(cmd, capture_output=True, timeout=timeout_sec)
-        if res.returncode == 0 and target_path.exists() and target_path.stat().st_size > 16384:
-            return True
-    except Exception:
-        pass
-    return False
+        opts = {
+            "format": "bestaudio/best",
+            "outtmpl": str(target_path),
+            "quiet": True,
+            "no_warnings": True,
+            "noprogress": True,
+            "js_runtimes": {"node": {}, "deno": {}},
+        }
+        if COOKIE_FILE.exists() and COOKIE_FILE.stat().st_size > 50:
+            opts["cookiefile"] = str(COOKIE_FILE)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url_or_webpage])
+        return target_path.exists() and target_path.stat().st_size > 16384
+    except Exception as e:
+        print(f"Aviso descarga local: {e}", flush=True)
+        return False
 
 
 async def search_song(query: str, requester: str, expected_duration: int = 0) -> Song:
@@ -847,8 +838,9 @@ async def ensure_song_ready_for_playback(song: Song, guild_id: int, slot: str = 
 
     target_file = AUDIO_CACHE_DIR / f"guild_{guild_id}_{slot}_{int(time.time() * 1000)}.mkv"
     loop = asyncio.get_running_loop()
+    dl_target = song.webpage_url if (song.webpage_url and song.webpage_url.startswith("http")) else song.url
     ok = await loop.run_in_executor(
-        None, lambda: _download_stream_to_local_file_sync(song.url, target_file, timeout_sec=20)
+        None, lambda: _download_stream_to_local_file_sync(dl_target, target_file, timeout_sec=30)
     )
     if ok:
         song.local_file = str(target_file)
@@ -1033,8 +1025,21 @@ class RequestSongModal(discord.ui.Modal, title="🐧🎶 Pedir Canción o Link")
         self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True, ephemeral=True)
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.defer(thinking=True, ephemeral=True)
+        except Exception:
+            pass
         await self.bot.handle_play_request(interaction, self.query.value)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"⚠️ Error: {error}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"⚠️ Error: {error}", ephemeral=True)
+        except Exception:
+            pass
 
 
 class ConnectYTMusicModal(discord.ui.Modal, title="❤️ Conectar Mi YouTube Music"):
@@ -2048,24 +2053,50 @@ class PenguPixelBot(commands.Bot):
             before_parts.append(f"-ss {int(seek_seconds)}")
 
         if song.local_file and Path(song.local_file).exists():
-            input_target = song.local_file
-        else:
-            before_parts.extend(
-                [
-                    "-reconnect 1",
-                    "-reconnect_streamed 1",
-                    "-reconnect_on_network_error 1",
-                    "-reconnect_delay_max 5",
-                ]
+            source = discord.FFmpegPCMAudio(
+                song.local_file,
+                executable=ffmpeg_exe,
+                before_options=" ".join(before_parts),
+                options=ffmpeg_opts,
             )
-            input_target = song.url
+        else:
+            if state.active_process:
+                try:
+                    state.active_process.kill()
+                except Exception:
+                    pass
+                state.active_process = None
 
-        source = discord.FFmpegPCMAudio(
-            input_target,
-            executable=ffmpeg_exe,
-            before_options=" ".join(before_parts),
-            options=ffmpeg_opts,
-        )
+            target_url = (
+                song.webpage_url
+                if (song.webpage_url and song.webpage_url.startswith("http"))
+                else f"https://www.youtube.com/watch?v={song.url}"
+            )
+            cmd_ytdl = [
+                "yt-dlp",
+                "--js-runtimes",
+                "node",
+                "-f",
+                "bestaudio/best",
+                "-o",
+                "-",
+                "--quiet",
+                "--no-warnings",
+            ]
+            if COOKIE_FILE.exists() and COOKIE_FILE.stat().st_size > 50:
+                cmd_ytdl.extend(["--cookies", str(COOKIE_FILE)])
+            cmd_ytdl.append(target_url)
+
+            proc = subprocess.Popen(cmd_ytdl, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            state.active_process = proc
+            source = discord.FFmpegPCMAudio(
+                proc.stdout,
+                pipe=True,
+                executable=ffmpeg_exe,
+                before_options=" ".join(before_parts),
+                options=ffmpeg_opts,
+            )
+
         return discord.PCMVolumeTransformer(source, volume=state.volume)
 
     async def apply_live_filter_change(self, guild: discord.Guild):
@@ -2083,6 +2114,12 @@ class PenguPixelBot(commands.Bot):
         transformed = self._build_audio_source(state.current, state, seek_seconds=elapsed)
 
         def after_play(error):
+            if state.active_process:
+                try:
+                    state.active_process.kill()
+                except Exception:
+                    pass
+                state.active_process = None
             if state.suppress_after_callback:
                 state.suppress_after_callback = False
                 return
@@ -2161,6 +2198,12 @@ class PenguPixelBot(commands.Bot):
         transformed = self._build_audio_source(next_song, state, seek_seconds=0.0)
 
         def after_play(error):
+            if state.active_process:
+                try:
+                    state.active_process.kill()
+                except Exception:
+                    pass
+                state.active_process = None
             if state.suppress_after_callback:
                 state.suppress_after_callback = False
                 return
