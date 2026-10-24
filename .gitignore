@@ -4,3 +4,5 @@ __pycache__/
 *.zip
 .chrome_profile*/
 deploy_cloud.py
+cookies.txt
+set_secret_cookies.py

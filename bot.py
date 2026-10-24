@@ -104,9 +104,10 @@ YTDL_FLAT_OPTIONS = {
     "no_warnings": True,
     "extract_flat": True,
     "nocheckcertificate": True,
+    "js_runtimes": {"node": {}, "deno": {}},
     "extractor_args": {
         "youtube": {
-            "player_client": ["tv_downgraded", "android", "ios"]
+            "player_client": ["web", "mweb", "tv_downgraded", "android", "ios"]
         }
     },
 }
@@ -120,9 +121,10 @@ YTDL_FULL_OPTIONS = {
     "quiet": True,
     "no_warnings": True,
     "extract_flat": False,
+    "js_runtimes": {"node": {}, "deno": {}},
     "extractor_args": {
         "youtube": {
-            "player_client": ["tv_downgraded", "tv", "android_vr", "android", "ios"]
+            "player_client": ["web", "mweb", "tv_downgraded", "tv", "android_vr", "android", "ios"]
         }
     },
 }
@@ -131,6 +133,7 @@ COOKIE_FILE = BASE_DIR / "cookies.txt"
 if COOKIE_FILE.exists() and COOKIE_FILE.stat().st_size > 50:
     YTDL_FLAT_OPTIONS["cookiefile"] = str(COOKIE_FILE)
     YTDL_FULL_OPTIONS["cookiefile"] = str(COOKIE_FILE)
+    print(f"🍪 YouTube Cookies autenticadas activas ({COOKIE_FILE.stat().st_size} bytes)", flush=True)
 
 ytdl_flat = yt_dlp.YoutubeDL(YTDL_FLAT_OPTIONS)
 ytdl_full = yt_dlp.YoutubeDL(YTDL_FULL_OPTIONS)
